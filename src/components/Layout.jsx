@@ -1,5 +1,4 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useSensor, useSensors, PointerSensor } from '@dnd-kit/core';
 import Sidebar from './Sidebar';
 import { componentRegistry } from '../data/componentRegistry';
 import Canvas from './Canvas';
@@ -15,139 +14,11 @@ import { writeTextFile } from '@tauri-apps/plugin-fs';
 
 const Layout = () => {
     const [formElements, setFormElements] = useState([]);
-    const [activeDragItem, setActiveDragItem] = useState(null);
     const [selectedIds, setSelectedIds] = useState([]);
     const [selectionBox, setSelectionBox] = useState(null); // { startX, startY, currentX, currentY }
     const [activeTool, setActiveTool] = useState(null); // 'Button', 'Label', etc.
     const [drawingRect, setDrawingRect] = useState(null); // { startX, startY, currentX, currentY }
 
-    // Resizing & Moving State
-    const [resizing, setResizing] = useState(false);
-    const [resizeHandle, setResizeHandle] = useState(null); // null = move, string = resize handle
-    const [resizeStart, setResizeStart] = useState({ x: 0, y: 0 });
-    const [initialStates, setInitialStates] = useState({}); // Map of id -> {x, y, w, h}
-
-    // Project State
-    const [canvasSize, setCanvasSize] = useState({ width: 800, height: 600 });
-    const [formName, setFormName] = useState('Form1');
-    const [customMethods, setCustomMethods] = useState([]);
-    const [formEvents, setFormEvents] = useState({});
-
-    // Grid State
-    const [gridSize, setGridSize] = useState(10);
-    const [showGrid, setShowGrid] = useState(true);
-    const [showSettings, setShowSettings] = useState(false);
-
-    // Modals State
-    const [activeModal, setActiveModal] = useState(null); // 'code', 'addMethod'
-    const [editingCode, setEditingCode] = useState(null); // { type: 'event'|'method', id: string, name: string }
-
-    const canvasRef = useRef(null);
-    const fileInputRef = useRef(null);
-    const fileInputScaRef = useRef(null);
-
-    const sensors = useSensors(
-        useSensor(PointerSensor, {
-            activationConstraint: {
-                distance: 8,
-            },
-        })
-    );
-
-    // --- SELECTION, MOVING & RESIZING ---
-    const handleWidgetClick = (e, id) => {
-        e.stopPropagation();
-
-        let newSelection = [];
-        if (e.ctrlKey) {
-            newSelection = selectedIds.includes(id)
-                ? selectedIds.filter(i => i !== id)
-                : [...selectedIds, id];
-        } else {
-            newSelection = selectedIds.includes(id) ? selectedIds : [id];
-        }
-
-        setSelectedIds(newSelection);
-        // Start moving immediately on click
-        handleInteractionStart(e, id, null, newSelection);
-    };
-
-    const handleCanvasMouseDown = (e) => {
-        if (activeTool) {
-            setDrawingRect({
-                startX: e.clientX,
-                startY: e.clientY,
-                currentX: e.clientX,
-                currentY: e.clientY
-            });
-            return;
-        }
-
-        // Start selection box if not Ctrl key (Ctrl key might be for adding to selection, but drag-select usually clears first unless shift/ctrl)
-        // User asked for "click empty space... clears".
-        if (!e.ctrlKey) {
-            setSelectedIds([]);
-        }
-
-        setSelectionBox({
-            startX: e.clientX,
-            startY: e.clientY,
-            currentX: e.clientX,
-            currentY: e.clientY
-        });
-    };
-
-    const handleCanvasClick = () => {
-        // Handled by mouse up logic (small drag = click)
-    };
-
-    const handleInteractionStart = (e, id, handle, overrideSelection = null) => {
-        e.stopPropagation();
-
-        const currentSelection = overrideSelection || selectedIds;
-        const targetIds = handle ? [id] : currentSelection;
-
-        // Helper to find all descendants recursively
-        const getAllDescendants = (parentId) => {
-            const children = formElements.filter(el => el.parentId === parentId);
-            let descendants = [...children];
-            children.forEach(child => {
-                descendants = [...descendants, ...getAllDescendants(child.id)];
-            });
-            return descendants;
-        };
-
-        const states = {};
-        targetIds.forEach(tid => {
-            const w = formElements.find(el => el.id === tid);
-            if (w) {
-                states[tid] = {
-                    x: w.x,
-                    y: w.y,
-                    w: w.props.width || 100,
-                    h: w.props.height || 20
-                };
-
-                // If moving (not resizing), also capture children states
-                if (!handle) {
-                    const descendants = getAllDescendants(tid);
-                    descendants.forEach(child => {
-                        states[child.id] = {
-                            x: child.x,
-                            y: child.y,
-                            w: child.props.width || 100,
-                            h: child.props.height || 20
-                        };
-                    });
-                }
-            }
-        });
-
-        setResizing(true);
-        setResizeHandle(handle);
-        setResizeStart({ x: e.clientX, y: e.clientY });
-        setInitialStates(states);
-    };
 
     useEffect(() => {
         const handleMouseMove = (e) => {
@@ -166,6 +37,24 @@ const Layout = () => {
             const dx = e.clientX - resizeStart.x;
             const dy = e.clientY - resizeStart.y;
             const snap = (val) => showGrid ? Math.round(val / gridSize) * gridSize : val;
+
+            // Calculate consistent delta for movement
+            let moveDx = dx;
+            let moveDy = dy;
+
+            if (!resizeHandle && showGrid && dragReference) {
+                // Find reference element state
+                // If dragReference is not in initialStates (e.g. it's a child of a moved container), use the first available mover
+                const refId = initialStates[dragReference] ? dragReference : Object.keys(initialStates)[0];
+
+                if (refId && initialStates[refId]) {
+                    const refInit = initialStates[refId];
+                    const targetX = snap(refInit.x + dx);
+                    const targetY = snap(refInit.y + dy);
+                    moveDx = targetX - refInit.x;
+                    moveDy = targetY - refInit.y;
+                }
+            }
 
             setFormElements(els => els.map(el => {
                 if (!initialStates[el.id]) return el;
@@ -192,8 +81,9 @@ const Layout = () => {
                     if (newW < gridSize) newW = gridSize;
                     if (newH < gridSize) newH = gridSize;
                 } else {
-                    newX = snap(init.x + dx);
-                    newY = snap(init.y + dy);
+                    // Use the consistent delta
+                    newX = init.x + moveDx;
+                    newY = init.y + moveDy;
                 }
 
                 return { ...el, x: newX, y: newY, props: { ...el.props, width: newW, height: newH } };
@@ -224,10 +114,57 @@ const Layout = () => {
                                 x: Math.round(x / gridSize) * gridSize,
                                 y: Math.round(y / gridSize) * gridSize
                             };
+
+                            // Check for nesting on creation
+                            const getAbsoluteBounds = (elements) => {
+                                const bounds = {};
+                                const compute = (elId, xOffset, yOffset) => {
+                                    const el = elements.find(e => e.id === elId);
+                                    if (!el) return;
+                                    const absX = xOffset + el.x;
+                                    const absY = yOffset + el.y;
+                                    bounds[el.id] = { x: absX, y: absY, w: el.props.width, h: el.props.height, el };
+                                    elements.filter(c => c.parentId === el.id).forEach(child => compute(child.id, absX, absY));
+                                };
+                                elements.filter(e => !e.parentId).forEach(root => compute(root.id, 0, 0));
+                                return bounds;
+                            };
+
+                            const absBounds = getAbsoluteBounds(formElements);
+                            const widgetRect = { x: newWidget.x, y: newWidget.y, w: width, h: height };
+
+                            const contains = (container, rect) => {
+                                const cRight = container.x + (container.props.width || 0);
+                                const cBottom = container.y + (container.props.height || 0);
+                                const wRight = rect.x + rect.w;
+                                const wBottom = rect.y + rect.h;
+                                return (
+                                    rect.x >= container.x &&
+                                    rect.y >= container.y &&
+                                    wRight <= cRight &&
+                                    wBottom <= cBottom
+                                );
+                            };
+
+                            let bestParent = null;
+                            Object.values(absBounds).forEach(bound => {
+                                if (bound.el.type === 'container') {
+                                    if (contains({ x: bound.x, y: bound.y, props: { width: bound.w, height: bound.h } }, widgetRect)) {
+                                        if (!bestParent || (bound.w * bound.h < bestParent.w * bestParent.h)) {
+                                            bestParent = bound;
+                                        }
+                                    }
+                                }
+                            });
+
+                            if (bestParent) {
+                                newWidget.parentId = bestParent.el.id;
+                                newWidget.x = widgetRect.x - bestParent.x;
+                                newWidget.y = widgetRect.y - bestParent.y;
+                            }
+
                             setFormElements(prev => [...prev, newWidget]);
                             setSelectedIds([newWidget.id]);
-                            // Optionally clear active tool here if we want one-time use
-                            // setActiveTool(null); 
                         }
                     }
                 }
@@ -245,18 +182,32 @@ const Layout = () => {
                     const sbRight = sbLeft + sbWidth;
                     const sbBottom = sbTop + sbHeight;
 
-                    // ... rest of selection logic
                     if (sbWidth > 5 || sbHeight > 5) {
-                        const newSelected = formElements.filter(el => {
-                            const elRight = el.x + (el.props.width || 100);
-                            const elBottom = el.y + (el.props.height || 20);
+                        const getAbsoluteBounds = (elements) => {
+                            const bounds = {};
+                            const compute = (elId, xOffset, yOffset) => {
+                                const el = elements.find(e => e.id === elId);
+                                if (!el) return;
+                                const absX = xOffset + el.x;
+                                const absY = yOffset + el.y;
+                                bounds[el.id] = { x: absX, y: absY, w: el.props.width, h: el.props.height };
+                                elements.filter(c => c.parentId === el.id).forEach(child => compute(child.id, absX, absY));
+                            };
+                            elements.filter(e => !e.parentId).forEach(root => compute(root.id, 0, 0));
+                            return bounds;
+                        };
+                        const absBounds = getAbsoluteBounds(formElements);
+
+                        const newSelected = Object.entries(absBounds).filter(([id, bound]) => {
+                            const elRight = bound.x + (bound.w || 100);
+                            const elBottom = bound.y + (bound.h || 20);
                             return (
-                                el.x >= sbLeft &&
-                                el.y >= sbTop &&
+                                bound.x >= sbLeft &&
+                                bound.y >= sbTop &&
                                 elRight <= sbRight &&
                                 elBottom <= sbBottom
                             );
-                        }).map(el => el.id);
+                        }).map(([id]) => id);
 
                         if (e.ctrlKey) {
                             setSelectedIds(prev => [...new Set([...prev, ...newSelected])]);
@@ -264,7 +215,6 @@ const Layout = () => {
                             setSelectedIds(newSelected);
                         }
                     } else {
-                        // Treat as click on empty space
                         if (!e.ctrlKey) setSelectedIds([]);
                     }
                 }
@@ -273,6 +223,7 @@ const Layout = () => {
             }
 
             if (resizing) {
+                setFormElements(prev => reparentElements(prev, selectedIds));
                 setResizing(false);
                 setResizeHandle(null);
                 setInitialStates({});
@@ -286,7 +237,7 @@ const Layout = () => {
             window.removeEventListener('mousemove', handleMouseMove);
             window.removeEventListener('mouseup', handleMouseUp);
         };
-    }, [resizing, resizeStart, initialStates, resizeHandle, gridSize, showGrid, selectionBox, formElements, activeTool, drawingRect]);
+    }, [resizing, resizeStart, initialStates, resizeHandle, gridSize, showGrid, selectionBox, formElements, activeTool, drawingRect, dragReference]);
 
     // --- KEYBOARD HANDLING ---
     useEffect(() => {
@@ -379,70 +330,148 @@ const Layout = () => {
     }, [selectedIds, gridSize, formElements]);
 
 
-    // --- DRAG & DROP (New Components) ---
-    const handleDragStart = (event) => {
-        setActiveDragItem(event.active.data.current.component);
-    };
 
-    const handleDragEnd = (event) => {
-        const { active, over } = event;
 
-        if (over && over.id === 'canvas-droppable') {
-            const component = active.data.current.component;
-
-            let x = 0;
-            let y = 0;
-
-            if (active.rect.current.translated && canvasRef.current) {
-                const rect = canvasRef.current.getBoundingClientRect();
-                const droppedRect = active.rect.current.translated;
-
-                const rawX = droppedRect.left - rect.left;
-                const rawY = droppedRect.top - rect.top;
-
-                x = Math.round(rawX / gridSize) * gridSize;
-                y = Math.round(rawY / gridSize) * gridSize;
-
-                // Use defaultProps for width/height in boundary checks
-                const componentWidth = component.defaultProps.width || 20;
-                const componentHeight = component.defaultProps.height || 20;
-
-                x = Math.max(0, Math.min(x, canvasSize.width - componentWidth));
-                y = Math.max(0, Math.min(y, canvasSize.height - componentHeight));
-            }
-
-            const newWidget = {
-                id: `obj_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
-                type: component.type,
-                props: { ...component.defaultProps },
-                x,
-                y
+    // --- REPARENTING LOGIC ---
+    const reparentElements = (elements, modifiedIds) => {
+        // Helper to get absolute bounds
+        const getAbsoluteBounds = (els) => {
+            const bounds = {};
+            const compute = (elId, xOffset, yOffset) => {
+                const el = els.find(e => e.id === elId);
+                if (!el) return;
+                const absX = xOffset + el.x;
+                const absY = yOffset + el.y;
+                bounds[el.id] = { x: absX, y: absY, w: el.props.width, h: el.props.height, el };
+                els.filter(c => c.parentId === el.id).forEach(child => compute(child.id, absX, absY));
             };
-            setFormElements([...formElements, newWidget]);
-            setSelectedIds([newWidget.id]); // Auto-select new element
-        }
+            els.filter(e => !e.parentId).forEach(root => compute(root.id, 0, 0));
+            return bounds;
+        };
 
-        setActiveDragItem(null);
+        const absBounds = getAbsoluteBounds(elements);
+        let newElements = [...elements];
+        let changed = false;
+
+        // Only process modified elements that are "roots" of the modification (not children of other modified elements)
+        // For property updates, modifiedIds usually contains just one ID.
+        // For drag/resize, it might be multiple.
+
+        const topLevelModified = modifiedIds.filter(id => {
+            const el = elements.find(e => e.id === id);
+            if (!el || !el.parentId) return true;
+            let parent = elements.find(p => p.id === el.parentId);
+            while (parent) {
+                if (modifiedIds.includes(parent.id)) return false;
+                parent = elements.find(p => p.id === parent.parentId);
+            }
+            return true;
+        });
+
+        topLevelModified.forEach(id => {
+            const bound = absBounds[id];
+            if (!bound) return;
+
+            const widgetRect = { x: bound.x, y: bound.y, w: bound.w, h: bound.h };
+            let bestParent = null;
+
+            // Helper to check containment
+            const contains = (container, rect) => {
+                const cRight = container.x + (container.props.width || 0);
+                const cBottom = container.y + (container.props.height || 0);
+                const wRight = rect.x + rect.w;
+                const wBottom = rect.y + rect.h;
+                return (
+                    rect.x >= container.x &&
+                    rect.y >= container.y &&
+                    wRight <= cRight &&
+                    wBottom <= cBottom
+                );
+            };
+
+            Object.values(absBounds).forEach(targetBound => {
+                if (targetBound.el.type === 'container' && targetBound.el.id !== id) {
+                    // Check if target is descendant of current widget
+                    let isChild = false;
+                    let p = targetBound.el;
+                    while (p.parentId) {
+                        if (p.parentId === id) { isChild = true; break; }
+                        p = elements.find(e => e.id === p.parentId);
+                        if (!p) break;
+                    }
+                    if (isChild) return;
+
+                    if (contains({ x: targetBound.x, y: targetBound.y, props: { width: targetBound.w, height: targetBound.h } }, widgetRect)) {
+                        if (!bestParent || (targetBound.w * targetBound.h < bestParent.w * bestParent.h)) {
+                            bestParent = targetBound;
+                        }
+                    }
+                }
+            });
+
+            const elIndex = newElements.findIndex(e => e.id === id);
+            if (elIndex === -1) return;
+            const el = newElements[elIndex];
+
+            if (bestParent) {
+                if (el.parentId !== bestParent.el.id) {
+                    newElements[elIndex] = {
+                        ...el,
+                        parentId: bestParent.el.id,
+                        x: widgetRect.x - bestParent.x,
+                        y: widgetRect.y - bestParent.y
+                    };
+                    changed = true;
+                }
+            } else {
+                if (el.parentId) {
+                    newElements[elIndex] = {
+                        ...el,
+                        parentId: null,
+                        x: widgetRect.x,
+                        y: widgetRect.y
+                    };
+                    changed = true;
+                }
+            }
+        });
+
+        return changed ? newElements : elements;
     };
 
     // --- PROPERTIES ---
     const updateWidgetProp = (key, value) => {
-        setFormElements(els => els.map(el => {
-            if (selectedIds.includes(el.id)) {
-                // Unique Name Check
-                if (key === 'name') {
-                    const nameExists = els.some(other => other.id !== el.id && other.props.name === value);
-                    if (nameExists) {
-                        value = `${value}_${el.id}`;
+        setFormElements(prevElements => {
+            const updatedElements = prevElements.map(el => {
+                if (selectedIds.includes(el.id)) {
+                    // Unique Name Check
+                    if (key === 'name') {
+                        const nameExists = prevElements.some(other => other.id !== el.id && other.props.name === value);
+                        if (nameExists) {
+                            value = `${value}_${el.id}`;
+                        }
                     }
-                }
 
-                const newProps = { ...el.props };
-                newProps[key] = value;
-                return { ...el, props: newProps };
+                    const newProps = { ...el.props };
+                    newProps[key] = value;
+                    return { ...el, props: newProps };
+                }
+                return el;
+            });
+
+            // If position or size changed, check for reparenting
+            if (['x', 'y', 'width', 'height'].includes(key)) {
+                // For x/y, we need to update the element's x/y directly, not in props
+                // Wait, updateWidgetProp handles props. x/y are top-level properties.
+                // The PropInput for X/Y calls setFormElements directly (lines 731-742).
+                // This function `updateWidgetProp` is used for `props.*`.
+                // BUT `width` and `height` ARE in `props`.
+                // So if width/height changes, we should check reparenting.
+                return reparentElements(updatedElements, selectedIds);
             }
-            return el;
-        }));
+
+            return updatedElements;
+        });
     };
 
     // Helper to determine common properties for selection
@@ -731,13 +760,19 @@ const Layout = () => {
                                         <PropInput label="X" value={selectedElement.x} onChange={(v) => {
                                             const val = parseInt(v);
                                             if (!isNaN(val)) {
-                                                setFormElements(els => els.map(el => selectedIds.includes(el.id) ? { ...el, x: val } : el));
+                                                setFormElements(els => {
+                                                    const updated = els.map(el => selectedIds.includes(el.id) ? { ...el, x: val } : el);
+                                                    return reparentElements(updated, selectedIds);
+                                                });
                                             }
                                         }} />
                                         <PropInput label="Y" value={selectedElement.y} onChange={(v) => {
                                             const val = parseInt(v);
                                             if (!isNaN(val)) {
-                                                setFormElements(els => els.map(el => selectedIds.includes(el.id) ? { ...el, y: val } : el));
+                                                setFormElements(els => {
+                                                    const updated = els.map(el => selectedIds.includes(el.id) ? { ...el, y: val } : el);
+                                                    return reparentElements(updated, selectedIds);
+                                                });
                                             }
                                         }} />
                                         <PropInput label="Šířka" value={selectedElement.props.width} onChange={(v) => updateWidgetProp('width', parseInt(v) || 0)} />

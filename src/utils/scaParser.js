@@ -194,8 +194,8 @@ export const parseSCAContent = (text, setCanvasSize, setWidgets, setSelectedId, 
                 type: mappedType,
                 name: finalName,
                 parentId: parentId, // Store parent ID for dragging
-                x: (obj.props.left || 0) + offset.x,
-                y: (obj.props.top || 0) + offset.y,
+                x: (obj.props.left || 0) + (parentId ? 0 : offset.x),
+                y: (obj.props.top || 0) + (parentId ? 0 : offset.y),
                 props: { ...defaultProps },
             };
 

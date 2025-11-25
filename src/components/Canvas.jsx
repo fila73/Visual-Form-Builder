@@ -64,18 +64,31 @@ const Canvas = ({
                                 Select a tool and draw to create components
                             </div>
                         )}
-                        {elements.map((el) => (
-                            <div key={el.id} className="absolute" style={{ left: el.x || 0, top: el.y || 0, width: el.props.width, height: el.props.height }} onClick={(e) => e.stopPropagation()}>
-                                <div className="relative group p-0 cursor-move w-full h-full">
-                                    <FormElement
-                                        element={el}
-                                        selected={selectedIds.includes(el.id)}
-                                        onMouseDown={(e) => onWidgetClick(e, el.id)}
-                                        onResizeMouseDown={onResizeMouseDown}
-                                    />
-                                </div>
-                            </div>
-                        ))}
+                        {(() => {
+                            // Recursive rendering helper
+                            const renderElement = (el) => {
+                                const children = elements.filter(child => child.parentId === el.id);
+                                return (
+                                    <div key={el.id} className="absolute" style={{ left: el.x || 0, top: el.y || 0, width: el.props.width, height: el.props.height }} onClick={(e) => e.stopPropagation()}>
+                                        <div className="relative group p-0 cursor-move w-full h-full">
+                                            <FormElement
+                                                element={el}
+                                                selected={selectedIds.includes(el.id)}
+                                                onMouseDown={(e) => onWidgetClick(e, el.id)}
+                                                onResizeMouseDown={onResizeMouseDown}
+                                            >
+                                                {children.map(renderElement)}
+                                            </FormElement>
+                                        </div>
+                                    </div>
+                                );
+                            };
+
+                            // Render only root elements (no parentId or parentId not found in elements)
+                            return elements
+                                .filter(el => !el.parentId || !elements.find(p => p.id === el.parentId))
+                                .map(renderElement);
+                        })()}
                         {selectionBox && <div style={getBoxStyle(selectionBox)} />}
                         {drawingRect && <div style={getBoxStyle(drawingRect, '#10b981', 'rgba(16, 185, 129, 0.2)')} />}
                     </div>

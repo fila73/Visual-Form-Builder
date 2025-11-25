@@ -2,7 +2,7 @@ import React from 'react';
 import { COMPONENT_TYPES } from '../data/componentRegistry';
 import { CheckSquare, Image as ImageIcon } from 'lucide-react';
 
-const FormElement = ({ element, selected, onMouseDown, onResizeMouseDown }) => {
+const FormElement = ({ element, selected, onMouseDown, onResizeMouseDown, children }) => {
     const { type, props } = element;
 
     // Style for the container
@@ -56,7 +56,12 @@ const FormElement = ({ element, selected, onMouseDown, onResizeMouseDown }) => {
             content = <div className="w-full h-full border border-dashed border-gray-400 bg-gray-50 flex flex-col items-center justify-center text-gray-400"><ImageIcon size={24} /><span className="text-[10px] mt-1">Obrázek</span></div>;
             break;
         case COMPONENT_TYPES.CONTAINER:
-            content = <div className="w-full h-full border border-gray-400 border-dashed relative" style={{ backgroundColor: props.bg || props.style?.backgroundColor }}><div className="absolute top-0 left-0 bg-gray-200 text-[8px] px-1 text-gray-500">Container</div></div>;
+            content = (
+                <div className="w-full h-full border border-gray-400 border-dashed relative" style={{ backgroundColor: props.bg || props.style?.backgroundColor }}>
+                    <div className="absolute top-0 left-0 bg-gray-200 text-[8px] px-1 text-gray-500 z-10">Container</div>
+                    {children}
+                </div>
+            );
             break;
         default:
             content = <div>Unknown: {type}</div>;
