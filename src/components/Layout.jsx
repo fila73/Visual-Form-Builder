@@ -133,10 +133,38 @@ const Layout = () => {
                     if (width > 5 && height > 5) {
                         const component = componentRegistry.find(c => c.type === activeTool);
                         if (component) {
+                            // Generate Unique Name
+                            const getUniqueName = (type, elements) => {
+                                const baseNameMap = {
+                                    'label': 'Label',
+                                    'textbox': 'Text',
+                                    'editbox': 'Edit',
+                                    'button': 'Command',
+                                    'checkbox': 'Check',
+                                    'radio': 'Option',
+                                    'spinner': 'Spinner',
+                                    'combobox': 'Combo',
+                                    'grid': 'Grid',
+                                    'shape': 'Shape',
+                                    'image': 'Image',
+                                    'container': 'Container'
+                                };
+                                const base = baseNameMap[type] || 'Object';
+                                let counter = 1;
+                                while (true) {
+                                    const name = `${base}${counter}`;
+                                    const exists = elements.some(el => (el.props.name || el.name) === name);
+                                    if (!exists) return name;
+                                    counter++;
+                                }
+                            };
+
+                            const uniqueName = getUniqueName(component.type, formElements);
+
                             const newWidget = {
                                 id: `obj_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
                                 type: component.type,
-                                props: { ...component.defaultProps, width, height },
+                                props: { ...component.defaultProps, width, height, name: uniqueName },
                                 x: Math.round(x / gridSize) * gridSize,
                                 y: Math.round(y / gridSize) * gridSize
                             };

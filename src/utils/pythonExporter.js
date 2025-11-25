@@ -59,8 +59,29 @@ export const exportToPython = (widgets, customMethods, canvasSize, downloadFile,
 
     pyCode += `\n    def init_custom(self):\n        pass\n\n    def create_widgets(self):\n`;
 
-    widgets.forEach(w => {
-        const n = w.name;
+    // Sort widgets to ensure parents are created before children
+    const sortedWidgets = [...widgets].sort((a, b) => {
+        // Simple depth check: roots first, then children
+        const getDepth = (id) => {
+            let depth = 0;
+            let current = widgets.find(w => w.id === id);
+            while (current && current.parentId) {
+                depth++;
+                current = widgets.find(w => w.id === current.parentId);
+            }
+            return depth;
+        };
+        return getDepth(a.id) - getDepth(b.id);
+    });
+
+    // Map ID to Name for parent resolution
+    const idToName = {};
+
+    sortedWidgets.forEach(w => {
+        // Use name from props if available (editable), fallback to internal name
+        const n = w.props.name || w.name;
+        idToName[w.id] = n;
+
         const p = w.props;
         // Extract style props if available, or fall back to direct props
         const style = p.style || {};
@@ -69,25 +90,31 @@ export const exportToPython = (widgets, customMethods, canvasSize, downloadFile,
         const bg = style.backgroundColor || p.bg;
         const color = style.color || p.color;
 
+        // Resolve Parent
+        let parentVar = 'self';
+        if (w.parentId && idToName[w.parentId]) {
+            parentVar = `self.${idToName[w.parentId]}`;
+        }
+
         pyCode += `        # ${n} (${w.type})\n`;
-        if (w.type === 'label') pyCode += `        self.${n} = tk.Label(self, text="${p.text}", fg="${color}")\n`;
-        else if (w.type === 'textbox') { pyCode += `        self.${n} = tk.Entry(self)\n`; if (p.text) pyCode += `        self.${n}.insert(0, "${p.text}")\n`; }
-        else if (w.type === 'button') { pyCode += `        self.${n} = tk.Button(self, text="${p.text}", bg="${bg}")\n`; }
-        else if (w.type === 'checkbox') { pyCode += `        self.${n}_var = tk.BooleanVar(value=${p.checked ? 'True' : 'False'})\n        self.${n} = tk.Checkbutton(self, text="${p.label}", variable=self.${n}_var)\n`; }
-        else if (w.type === 'radio') pyCode += `        self.${n} = tk.Radiobutton(self, text="${p.label}", value="${n}")\n`;
-        else if (w.type === 'combobox') pyCode += `        self.${n} = ttk.Combobox(self, values=[${p.options ? p.options.map(i => `"${i.trim()}"`).join(', ') : ''}])\n`;
+        if (w.type === 'label') pyCode += `        self.${n} = tk.Label(${parentVar}, text="${p.text}", fg="${color}")\n`;
+        else if (w.type === 'textbox') { pyCode += `        self.${n} = tk.Entry(${parentVar})\n`; if (p.text) pyCode += `        self.${n}.insert(0, "${p.text}")\n`; }
+        else if (w.type === 'button') { pyCode += `        self.${n} = tk.Button(${parentVar}, text="${p.text}", bg="${bg}")\n`; }
+        else if (w.type === 'checkbox') { pyCode += `        self.${n}_var = tk.BooleanVar(value=${p.checked ? 'True' : 'False'})\n        self.${n} = tk.Checkbutton(${parentVar}, text="${p.label}", variable=self.${n}_var)\n`; }
+        else if (w.type === 'radio') pyCode += `        self.${n} = tk.Radiobutton(${parentVar}, text="${p.label}", value="${n}")\n`;
+        else if (w.type === 'combobox') pyCode += `        self.${n} = ttk.Combobox(${parentVar}, values=[${p.options ? p.options.map(i => `"${i.trim()}"`).join(', ') : ''}])\n`;
         else if (w.type === 'grid') {
             const cols = p.columns || 3;
-            pyCode += `        self.${n}_frame = tk.Frame(self)\n        self.${n} = ttk.Treeview(self.${n}_frame, columns=(${Array.from({ length: cols }, (_, i) => `"col${i + 1}"`).join(',')}), show='headings')\n`;
+            pyCode += `        self.${n}_frame = tk.Frame(${parentVar})\n        self.${n} = ttk.Treeview(self.${n}_frame, columns=(${Array.from({ length: cols }, (_, i) => `"col${i + 1}"`).join(',')}), show='headings')\n`;
             pyCode += `        self.${n}.pack(fill='both', expand=True)\n`;
         }
-        else if (w.type === 'shape') pyCode += `        self.${n} = tk.Frame(self, bg="${bg}")\n`;
-        else if (w.type === 'image') pyCode += `        self.${n}_lbl = tk.Label(self, text="[Image]", bg="#ccc")\n`;
-        else if (w.type === 'editbox') { pyCode += `        self.${n} = tk.Text(self)\n`; if (p.text) pyCode += `        self.${n}.insert("1.0", "${p.text.replace(/\n/g, '\\n')}")\n`; }
-        else if (w.type === 'spinner') { pyCode += `        self.${n} = tk.Spinbox(self, from_=0, to=100)\n        self.${n}.delete(0,"end")\n        self.${n}.insert(0, "${p.value || 0}")\n`; }
+        else if (w.type === 'shape') pyCode += `        self.${n} = tk.Frame(${parentVar}, bg="${bg}")\n`;
+        else if (w.type === 'image') pyCode += `        self.${n}_lbl = tk.Label(${parentVar}, text="[Image]", bg="#ccc")\n`;
+        else if (w.type === 'editbox') { pyCode += `        self.${n} = tk.Text(${parentVar})\n`; if (p.text) pyCode += `        self.${n}.insert("1.0", "${p.text.replace(/\n/g, '\\n')}")\n`; }
+        else if (w.type === 'spinner') { pyCode += `        self.${n} = tk.Spinbox(${parentVar}, from_=0, to=100)\n        self.${n}.delete(0,"end")\n        self.${n}.insert(0, "${p.value || 0}")\n`; }
         else if (w.type === 'container') {
             const bgParam = bg && bg !== 'transparent' ? `, bg="${bg}"` : '';
-            pyCode += `        self.${n} = tk.Frame(self${bgParam}, highlightbackground="#ccc", highlightthickness=1)\n`;
+            pyCode += `        self.${n} = tk.Frame(${parentVar}${bgParam}, highlightbackground="#ccc", highlightthickness=1)\n`;
         }
 
         const target = (w.type === 'grid') ? `${n}_frame` : (w.type === 'image' ? `${n}_lbl` : n);
