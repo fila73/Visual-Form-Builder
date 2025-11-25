@@ -617,7 +617,7 @@ const Layout = () => {
 
                                     <div className="mb-6">
                                         <div className="text-xs font-bold text-gray-500 uppercase mb-2">Vlastnosti</div>
-                                        {Object.entries(selectedElement.props).map(([key, value]) => {
+                                        {Object.entries({ visible: true, enabled: true, ...selectedElement.props }).map(([key, value]) => {
                                             if (['width', 'height', 'style'].includes(key)) return null; // Skip handled props
                                             return (
                                                 <PropInput

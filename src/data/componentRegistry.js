@@ -21,6 +21,8 @@ export const componentRegistry = [
         icon: 'Type',
         defaultProps: {
             text: 'Label',
+            visible: true,
+            enabled: true,
             style: { fontSize: '14px', color: '#000' },
         },
     },
@@ -31,6 +33,8 @@ export const componentRegistry = [
         defaultProps: {
             value: '',
             placeholder: 'Text Box',
+            visible: true,
+            enabled: true,
             style: { width: '100px', height: '24px', border: '1px solid #ccc' },
         },
     },
@@ -41,6 +45,8 @@ export const componentRegistry = [
         defaultProps: {
             value: '',
             placeholder: 'Edit Box',
+            visible: true,
+            enabled: true,
             style: { width: '100px', height: '60px', border: '1px solid #ccc' },
         },
     },
@@ -50,6 +56,8 @@ export const componentRegistry = [
         icon: 'MousePointerClick',
         defaultProps: {
             text: 'Button',
+            visible: true,
+            enabled: true,
             style: { width: '80px', height: '24px', backgroundColor: '#f0f0f0', border: '1px solid #999' },
         },
     },
@@ -60,6 +68,8 @@ export const componentRegistry = [
         defaultProps: {
             label: 'Check Box',
             checked: false,
+            visible: true,
+            enabled: true,
             style: {},
         },
     },
@@ -70,6 +80,8 @@ export const componentRegistry = [
         defaultProps: {
             label: 'Radio Button',
             checked: false,
+            visible: true,
+            enabled: true,
             style: {},
         },
     },
@@ -79,6 +91,8 @@ export const componentRegistry = [
         icon: 'Hash',
         defaultProps: {
             value: 0,
+            visible: true,
+            enabled: true,
             style: { width: '60px' },
         },
     },
@@ -88,6 +102,8 @@ export const componentRegistry = [
         icon: 'List',
         defaultProps: {
             options: ['Option 1', 'Option 2'],
+            visible: true,
+            enabled: true,
             style: { width: '100px' },
         },
     },
@@ -98,6 +114,8 @@ export const componentRegistry = [
         defaultProps: {
             columns: 3,
             rows: 3,
+            visible: true,
+            enabled: true,
             style: { width: '200px', height: '150px', border: '1px solid #ccc' },
         },
     },
@@ -106,6 +124,8 @@ export const componentRegistry = [
         label: 'Shape',
         icon: 'Square',
         defaultProps: {
+            visible: true,
+            enabled: true,
             style: { width: '50px', height: '50px', border: '1px solid #000', backgroundColor: 'transparent' },
         },
     },
@@ -115,6 +135,8 @@ export const componentRegistry = [
         icon: 'Image',
         defaultProps: {
             src: 'https://via.placeholder.com/50',
+            visible: true,
+            enabled: true,
             style: { width: '50px', height: '50px' },
         },
     },
@@ -123,6 +145,8 @@ export const componentRegistry = [
         label: 'Container',
         icon: 'Layout',
         defaultProps: {
+            visible: true,
+            enabled: true,
             style: { width: '200px', height: '200px', border: '1px dashed #ccc' },
         },
     },
