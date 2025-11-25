@@ -47,12 +47,12 @@ const Canvas = ({ elements, gridSize = 10, showGrid = true, canvasRef, selectedI
                 <span>Form1: {canvasSize?.width || 800}x{canvasSize?.height || 600}px</span>
                 <span>Grid: {showGrid ? `${gridSize}px` : 'Off'}</span>
             </div>
-            <div className="flex-1 p-8 overflow-auto flex justify-center items-center bg-gray-500">
+            <div className="flex-1 p-8 overflow-auto flex justify-center items-center bg-gray-500" onMouseDown={onCanvasMouseDown}>
                 <div
                     ref={setRefs}
                     style={style}
                     className="bg-white shadow-lg relative transition-all duration-200"
-                    onMouseDown={onCanvasMouseDown}
+
                     onClick={(e) => e.stopPropagation()} // Prevent canvas click when clicking on the form area
                 >
                     <div style={{ width: `${canvasSize?.width || 800}px`, height: `${canvasSize?.height || 600}px`, position: 'relative' }}>
