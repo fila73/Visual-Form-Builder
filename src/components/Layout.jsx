@@ -17,7 +17,129 @@ const Layout = () => {
     const [selectedIds, setSelectedIds] = useState([]);
     const [selectionBox, setSelectionBox] = useState(null); // { startX, startY, currentX, currentY }
     const [activeTool, setActiveTool] = useState(null); // 'Button', 'Label', etc.
+    const [isToolLocked, setIsToolLocked] = useState(false);
     const [drawingRect, setDrawingRect] = useState(null); // { startX, startY, currentX, currentY }
+
+    // --- CLIPBOARD OPERATIONS ---
+    const copyToClipboard = async () => {
+        if (selectedIds.length === 0) return;
+        const selectedElements = formElements.filter(el => selectedIds.includes(el.id));
+        const json = JSON.stringify(selectedElements, null, 2);
+        try {
+            await navigator.clipboard.writeText(json);
+        } catch (err) {
+            console.error('Failed to copy:', err);
+        }
+    };
+
+    const cutToClipboard = async () => {
+        await copyToClipboard();
+        setFormElements(prev => prev.filter(el => !selectedIds.includes(el.id)));
+        setSelectedIds([]);
+    };
+
+    const pasteFromClipboard = async () => {
+        try {
+            const text = await navigator.clipboard.readText();
+            const widgets = JSON.parse(text);
+            if (!Array.isArray(widgets)) return;
+
+            // Generate Unique Name Helper (reused)
+            const getUniqueName = (type, elements) => {
+                const baseNameMap = {
+                    'label': 'Label',
+                    'textbox': 'Text',
+                    'editbox': 'Edit',
+                    'button': 'Command',
+                    'checkbox': 'Check',
+                    'radio': 'Option',
+                    'spinner': 'Spinner',
+                    'combobox': 'Combo',
+                    'grid': 'Grid',
+                    'shape': 'Shape',
+                    'image': 'Image',
+                    'container': 'Container'
+                };
+                const base = baseNameMap[type] || 'Object';
+                let counter = 1;
+                while (true) {
+                    const name = `${base}${counter}`;
+                    const exists = elements.some(el => (el.props.name || el.name) === name);
+                    if (!exists) return name;
+                    counter++;
+                }
+            };
+
+            const newWidgets = [];
+            const newIds = [];
+
+            // Check for position collisions
+            const offset = { x: 0, y: 0 };
+            const firstWidget = widgets[0];
+            if (firstWidget) {
+                const existsAtPos = formElements.some(el =>
+                    Math.abs(el.x - firstWidget.x) < 5 && Math.abs(el.y - firstWidget.y) < 5
+                );
+                if (existsAtPos) {
+                    offset.x = 10;
+                    offset.y = 10;
+                }
+            }
+
+            // Process widgets
+            // We need to process them sequentially to ensure unique names are generated correctly against the growing list
+            let currentElements = [...formElements];
+
+            widgets.forEach(w => {
+                const newId = `obj_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+                const uniqueName = getUniqueName(w.type, currentElements);
+
+                const newWidget = {
+                    ...w,
+                    id: newId,
+                    x: w.x + offset.x,
+                    y: w.y + offset.y,
+                    props: { ...w.props, name: uniqueName }
+                };
+
+                // If it had a parent that is also being pasted, we need to remap the parentId
+                // But for simple copy/paste, we might just paste them as new roots or keep relative if we copied a container + children
+                // For now, let's assume flat paste or simple offset. 
+                // If we copy a container and its child, the child's parentId points to the OLD container ID.
+                // We need to map old IDs to new IDs if we want to preserve hierarchy within the pasted block.
+
+                newWidgets.push(newWidget);
+                newIds.push(newId);
+                currentElements.push(newWidget);
+            });
+
+            // Fix parentIds for pasted group
+            const idMap = {};
+            widgets.forEach((w, i) => {
+                idMap[w.id] = newWidgets[i].id;
+            });
+
+            newWidgets.forEach(w => {
+                if (w.parentId && idMap[w.parentId]) {
+                    w.parentId = idMap[w.parentId];
+                } else {
+                    // If parent was NOT in the pasted group, what do we do?
+                    // Keep it? Or make it root?
+                    // If we paste into the same form, the parent might still exist.
+                    // But if we paste into a different context or if we want to detach, maybe root?
+                    // For now, let's keep it. If the parent exists in formElements, it will attach.
+                    // If not, it might be floating.
+                    // But the user requirement was "paste... if exists... offset".
+                }
+            });
+
+            setFormElements(prev => [...prev, ...newWidgets]);
+            setSelectedIds(newIds);
+
+        } catch (err) {
+            console.error('Failed to paste:', err);
+        }
+    };
 
 
     // Resizing & Moving State
@@ -223,6 +345,9 @@ const Layout = () => {
                     }
                 }
                 setDrawingRect(null);
+                if (!isToolLocked) {
+                    setActiveTool(null);
+                }
                 return;
             }
 
@@ -777,6 +902,124 @@ const Layout = () => {
         }
     };
 
+    // --- TOOLBAR HANDLERS ---
+    const handleToolSelect = (tool) => {
+        if (activeTool === tool) {
+            // If clicking the same tool, deselect it and unlock
+            setActiveTool(null);
+            setIsToolLocked(false);
+        } else {
+            // Select new tool, initially unlocked
+            setActiveTool(tool);
+            setIsToolLocked(false);
+        }
+    };
+
+    const handleToolLock = (tool) => {
+        setActiveTool(tool);
+        setIsToolLocked(true);
+    };
+
+    // --- KEYBOARD HANDLING ---
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            // Clipboard Shortcuts
+            if (e.ctrlKey) {
+                if (e.key === 'c' || e.key === 'C') {
+                    e.preventDefault();
+                    copyToClipboard();
+                    return;
+                }
+                if (e.key === 'v' || e.key === 'V') {
+                    e.preventDefault();
+                    pasteFromClipboard();
+                    return;
+                }
+                if (e.key === 'x' || e.key === 'X') {
+                    e.preventDefault();
+                    cutToClipboard();
+                    return;
+                }
+            }
+
+            // Ctrl+A - Select All
+            if (e.ctrlKey && (e.code === 'KeyA' || e.key === 'a' || e.key === 'A')) {
+                const tagName = e.target.tagName;
+                if (tagName === 'INPUT' || tagName === 'TEXTAREA' || e.target.isContentEditable) {
+                    return;
+                }
+                e.preventDefault();
+                e.stopPropagation();
+                setSelectedIds(formElements.map(el => el.id));
+                return;
+            }
+
+            if (selectedIds.length === 0) return;
+            if (['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return;
+
+            const step = e.ctrlKey ? gridSize : 1;
+            const isResize = e.shiftKey;
+            const isAlign = e.altKey;
+
+            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+                e.preventDefault();
+
+                if (isAlign && selectedIds.length > 1) {
+                    // Alignment Logic
+                    const selectedElements = formElements.filter(el => selectedIds.includes(el.id));
+                    let targetValue;
+
+                    if (e.key === 'ArrowLeft') {
+                        targetValue = Math.min(...selectedElements.map(el => el.x));
+                        setFormElements(prev => prev.map(el => selectedIds.includes(el.id) ? { ...el, x: targetValue } : el));
+                    } else if (e.key === 'ArrowRight') {
+                        const maxRight = Math.max(...selectedElements.map(el => el.x + (el.props.width || 0)));
+                        setFormElements(prev => prev.map(el => selectedIds.includes(el.id) ? { ...el, x: maxRight - (el.props.width || 0) } : el));
+                    } else if (e.key === 'ArrowTop') {
+                        targetValue = Math.min(...selectedElements.map(el => el.y));
+                        setFormElements(prev => prev.map(el => selectedIds.includes(el.id) ? { ...el, y: targetValue } : el));
+                    } else if (e.key === 'ArrowBottom') {
+                        const maxBottom = Math.max(...selectedElements.map(el => el.y + (el.props.height || 0)));
+                        setFormElements(prev => prev.map(el => selectedIds.includes(el.id) ? { ...el, y: maxBottom - (el.props.height || 0) } : el));
+                    }
+                    return;
+                }
+
+                setFormElements(prev => {
+                    return prev.map(el => {
+                        if (selectedIds.includes(el.id)) {
+                            let { x, y, props } = el;
+                            let { width, height } = props;
+
+                            if (isResize) {
+                                if (e.key === 'ArrowRight') width += step;
+                                if (e.key === 'ArrowLeft') width -= step;
+                                if (e.key === 'ArrowDown') height += step;
+                                if (e.key === 'ArrowUp') height -= step;
+                            } else {
+                                if (e.key === 'ArrowRight') x += step;
+                                if (e.key === 'ArrowLeft') x -= step;
+                                if (e.key === 'ArrowDown') y += step;
+                                if (e.key === 'ArrowUp') y -= step;
+                            }
+
+                            return { ...el, x, y, props: { ...props, width, height } };
+                        }
+                        return el;
+                    });
+                });
+            }
+
+            if (e.key === 'Delete' || e.key === 'Backspace') {
+                setFormElements(prev => prev.filter(el => !selectedIds.includes(el.id)));
+                setSelectedIds([]);
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [selectedIds, formElements, gridSize]);
+
     return (
         <div className="flex flex-col h-screen w-screen overflow-hidden">
             <input type="file" ref={fileInputRef} className="hidden" accept=".json" onChange={handleLoadProject} />
@@ -865,7 +1108,12 @@ const Layout = () => {
             }
 
             <div className="flex flex-1 overflow-hidden">
-                <Sidebar activeTool={activeTool} onToolSelect={(tool) => setActiveTool(current => current === tool ? null : tool)} />
+                <Sidebar
+                    activeTool={activeTool}
+                    isToolLocked={isToolLocked}
+                    onToolSelect={handleToolSelect}
+                    onToolLock={handleToolLock}
+                />
                 <Canvas
                     elements={formElements}
                     gridSize={gridSize}
