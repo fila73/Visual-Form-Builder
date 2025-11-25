@@ -436,7 +436,7 @@ const Layout = () => {
 
     // --- EVENTS & METHODS ---
     const handleEditEvent = (eventName) => {
-        const elementId = selectedId || 'Form1';
+        const elementId = selectedIds.length > 0 ? selectedIds[0] : 'Form1';
         const eventKey = `${elementId}_${eventName}`;
 
         setEditingCode({ type: 'event', id: elementId, name: eventName, key: eventKey });
