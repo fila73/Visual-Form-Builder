@@ -20,6 +20,32 @@ const Layout = () => {
     const [drawingRect, setDrawingRect] = useState(null); // { startX, startY, currentX, currentY }
 
 
+    // Resizing & Moving State
+    const [resizing, setResizing] = useState(false);
+    const [resizeHandle, setResizeHandle] = useState(null); // null = move, string = resize handle
+    const [resizeStart, setResizeStart] = useState({ x: 0, y: 0 });
+    const [initialStates, setInitialStates] = useState({}); // Map of id -> {x, y, w, h}
+    const [dragReference, setDragReference] = useState(null); // ID of the element used for snapping
+
+    // Project State
+    const [canvasSize, setCanvasSize] = useState({ width: 800, height: 600 });
+    const [formName, setFormName] = useState('Form1');
+    const [customMethods, setCustomMethods] = useState([]);
+    const [formEvents, setFormEvents] = useState({});
+
+    // Grid State
+    const [gridSize, setGridSize] = useState(10);
+    const [showGrid, setShowGrid] = useState(true);
+    const [showSettings, setShowSettings] = useState(false);
+
+    // Modals State
+    const [activeModal, setActiveModal] = useState(null); // 'code', 'addMethod'
+    const [editingCode, setEditingCode] = useState(null); // { type: 'event'|'method', id: string, name: string }
+
+    const canvasRef = useRef(null);
+    const fileInputRef = useRef(null);
+    const fileInputScaRef = useRef(null);
+
     useEffect(() => {
         const handleMouseMove = (e) => {
             if (activeTool && drawingRect) {
