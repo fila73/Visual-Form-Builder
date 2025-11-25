@@ -4,7 +4,7 @@ import { componentRegistry } from '../data/componentRegistry';
 // In the legacy code, it imported WIDGET_TYPES. Here we might need to map differently if registry structure changed.
 // For now, I'll adapt it to use our componentRegistry structure or just string types if they match.
 
-export const parseSCAContent = (text, setCanvasSize, setWidgets, setSelectedId, setFormEvents) => {
+export const parseSCAContent = (text, setCanvasSize, setWidgets, setSelectedId, setFormEvents, setFormName) => {
     const lines = text.split('\n');
     const newWidgets = [];
     let currentRecord = {};
@@ -101,8 +101,33 @@ export const parseSCAContent = (text, setCanvasSize, setWidgets, setSelectedId, 
     let formProps = { width: 800, height: 600 };
     let formMethods = {};
 
-    // First pass: Find Form and Containers to establish offsets
-    const containerOffsets = {};
+    // Map for quick lookup of objects and their future IDs
+    const objectsMap = {};
+    const nameToIdMap = {}; // Map objName -> generated ID
+
+    objects.forEach(obj => {
+        if (obj.objName) {
+            objectsMap[obj.objName] = obj;
+            nameToIdMap[obj.objName] = `obj_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        }
+    });
+
+    // Helper to get absolute position of a parent container
+    const getParentOffset = (parentName) => {
+        // Handle dot notation if present
+        const parts = parentName.split('.');
+        const immediateParentName = parts[parts.length - 1];
+
+        const parentObj = objectsMap[immediateParentName];
+        if (!parentObj) return { x: 0, y: 0 };
+        if (parentObj.baseClass === 'form') return { x: 0, y: 0 };
+
+        const grandParentOffset = parentObj.parent ? getParentOffset(parentObj.parent) : { x: 0, y: 0 };
+        return {
+            x: (parentObj.props.left || 0) + grandParentOffset.x,
+            y: (parentObj.props.top || 0) + grandParentOffset.y
+        };
+    };
 
     objects.forEach(obj => {
         if (obj.baseClass === 'form') {
@@ -110,7 +135,6 @@ export const parseSCAContent = (text, setCanvasSize, setWidgets, setSelectedId, 
             if (obj.props.height) formProps.height = obj.props.height;
             if (obj.objName && setFormName) setFormName(obj.objName);
             if (obj.props.name && setFormName) setFormName(obj.props.name);
-            containerOffsets[obj.objName] = { x: 0, y: 0 };
             formMethods = obj.methods;
         }
     });
@@ -133,18 +157,40 @@ export const parseSCAContent = (text, setCanvasSize, setWidgets, setSelectedId, 
         const mappedType = typeMap[obj.baseClass] || typeMap[obj.class];
 
         if (mappedType && mappedType !== 'form') {
-            const parentName = obj.parent?.split('.').pop();
-            const offset = containerOffsets[parentName] || { x: 0, y: 0 };
+            const parentName = obj.parent;
+            const offset = parentName ? getParentOffset(parentName) : { x: 0, y: 0 };
 
             // Find default props from registry
             const registryItem = componentRegistry.find(c => c.type === mappedType);
             const defaultProps = registryItem ? registryItem.defaultProps : {};
 
+            // Use pre-generated ID if available, otherwise generate new (shouldn't happen for named objects)
+            const id = nameToIdMap[obj.objName] || `obj_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+            // Resolve parent ID
+            let parentId = null;
+            if (obj.parent) {
+                const parts = obj.parent.split('.');
+                const immediateParentName = parts[parts.length - 1];
+
+                const parentObj = objectsMap[immediateParentName];
+                if (parentObj && parentObj.baseClass !== 'form') {
+                    parentId = nameToIdMap[immediateParentName];
+                }
+            }
+
+            // Unique Name Check
+            let finalName = obj.objName;
+            const nameExists = newWidgets.some(w => w.name === finalName);
+            if (nameExists) {
+                finalName = `${finalName}_${id}`;
+            }
+
             const newWidget = {
-                id: `obj_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                id,
                 type: mappedType,
-                name: obj.objName,
-                parentId: parentName, // Store parent ID for dragging
+                name: finalName,
+                parentId: parentId, // Store parent ID for dragging
                 x: (obj.props.left || 0) + offset.x,
                 y: (obj.props.top || 0) + offset.y,
                 props: { ...defaultProps },
@@ -173,8 +219,8 @@ export const parseSCAContent = (text, setCanvasSize, setWidgets, setSelectedId, 
             // if (obj.props.controlsource) newWidget.props.text = obj.props.controlsource; // REMOVED: ControlSource should not overwrite text
 
             // Map Name if present (from [OBJNAME] or Name prop)
-            if (obj.objName) newWidget.props.name = obj.objName;
-            if (obj.props.name) newWidget.props.name = obj.props.name;
+            // Use finalName which has uniqueness check applied
+            newWidget.props.name = finalName;
 
             if (obj.props.visible !== undefined) newWidget.props.visible = obj.props.visible;
             if (obj.props.enabled !== undefined) newWidget.props.enabled = obj.props.enabled;

@@ -26,6 +26,7 @@ const Layout = () => {
 
     // Project State
     const [canvasSize, setCanvasSize] = useState({ width: 800, height: 600 });
+    const [formName, setFormName] = useState('Form1');
     const [customMethods, setCustomMethods] = useState([]);
     const [formEvents, setFormEvents] = useState({});
 
@@ -93,6 +94,16 @@ const Layout = () => {
         const currentSelection = overrideSelection || selectedIds;
         const targetIds = handle ? [id] : currentSelection;
 
+        // Helper to find all descendants recursively
+        const getAllDescendants = (parentId) => {
+            const children = formElements.filter(el => el.parentId === parentId);
+            let descendants = [...children];
+            children.forEach(child => {
+                descendants = [...descendants, ...getAllDescendants(child.id)];
+            });
+            return descendants;
+        };
+
         const states = {};
         targetIds.forEach(tid => {
             const w = formElements.find(el => el.id === tid);
@@ -103,6 +114,19 @@ const Layout = () => {
                     w: w.props.width || 100,
                     h: w.props.height || 20
                 };
+
+                // If moving (not resizing), also capture children states
+                if (!handle) {
+                    const descendants = getAllDescendants(tid);
+                    descendants.forEach(child => {
+                        states[child.id] = {
+                            x: child.x,
+                            y: child.y,
+                            w: child.props.width || 100,
+                            h: child.props.height || 20
+                        };
+                    });
+                }
             }
         });
 
@@ -279,6 +303,12 @@ const Layout = () => {
                     setSelectedIds([]);
                 }
             }
+
+            // Ctrl+A - Select All
+            if (e.ctrlKey && e.key === 'a') {
+                e.preventDefault();
+                setSelectedIds(formElements.map(el => el.id));
+            }
         };
 
         window.addEventListener('keydown', handleKeyDown);
@@ -318,15 +348,15 @@ const Layout = () => {
                 y = Math.max(0, Math.min(y, canvasSize.height - componentHeight));
             }
 
-            const newElement = {
+            const newWidget = {
                 id: `obj_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
                 type: component.type,
                 props: { ...component.defaultProps },
                 x,
                 y
             };
-            setFormElements([...formElements, newElement]);
-            setSelectedIds([newElement.id]); // Auto-select new element
+            setFormElements([...formElements, newWidget]);
+            setSelectedIds([newWidget.id]); // Auto-select new element
         }
 
         setActiveDragItem(null);
@@ -336,6 +366,14 @@ const Layout = () => {
     const updateWidgetProp = (key, value) => {
         setFormElements(els => els.map(el => {
             if (selectedIds.includes(el.id)) {
+                // Unique Name Check
+                if (key === 'name') {
+                    const nameExists = els.some(other => other.id !== el.id && other.props.name === value);
+                    if (nameExists) {
+                        value = `${value}_${el.id}`;
+                    }
+                }
+
                 const newProps = { ...el.props };
                 newProps[key] = value;
                 return { ...el, props: newProps };
@@ -433,6 +471,7 @@ const Layout = () => {
                     setCanvasSize(data.canvasSize);
                     setCustomMethods(data.customMethods || []);
                     setFormEvents(data.formEvents || {});
+                    if (data.formName) setFormName(data.formName);
                     setSelectedIds([]);
                 }
             } catch (err) { alert("Chyba JSON."); }
@@ -444,7 +483,7 @@ const Layout = () => {
         const file = e.target.files[0];
         if (!file) return;
         const reader = new FileReader();
-        reader.onload = (event) => parseSCAContent(event.target.result, setCanvasSize, setFormElements, (id) => setSelectedIds([id]), setFormEvents);
+        reader.onload = (event) => parseSCAContent(event.target.result, setCanvasSize, setFormElements, (id) => setSelectedIds([id]), setFormEvents, setFormName);
         reader.readAsText(file); e.target.value = '';
     };
 
@@ -452,6 +491,7 @@ const Layout = () => {
         try {
             console.log("Opening save dialog for Python export...");
             const path = await save({
+                defaultPath: `${formName}.py`,
                 filters: [{
                     name: 'Python Script',
                     extensions: ['py']
@@ -485,6 +525,7 @@ const Layout = () => {
         try {
             console.log("Opening save dialog for Project...");
             const path = await save({
+                defaultPath: `${formName}.json`,
                 filters: [{
                     name: 'JSON Project',
                     extensions: ['json']
@@ -494,7 +535,7 @@ const Layout = () => {
             console.log("Selected path:", path);
             if (!path) return; // User cancelled
 
-            const data = JSON.stringify({ canvasSize, widgets: formElements, customMethods, formEvents }, null, 2);
+            const data = JSON.stringify({ canvasSize, widgets: formElements, customMethods, formEvents, formName }, null, 2);
             console.log("Writing project data to:", path);
             await writeTextFile(path, data);
             console.log("Project saved successfully");
