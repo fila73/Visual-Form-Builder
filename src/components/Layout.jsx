@@ -238,6 +238,22 @@ const Layout = () => {
     // --- KEYBOARD HANDLING ---
     useEffect(() => {
         const handleKeyDown = (e) => {
+            // Ctrl+A - Select All
+            // Use e.code 'KeyA' which is layout-independent for the physical key 'A'
+            // Also check for e.key === 'a' or 'A' as fallback
+            if (e.ctrlKey && (e.code === 'KeyA' || e.key === 'a' || e.key === 'A')) {
+                // Ignore if focus is in an input or textarea
+                const tagName = e.target.tagName;
+                if (tagName === 'INPUT' || tagName === 'TEXTAREA' || e.target.isContentEditable) {
+                    return;
+                }
+
+                e.preventDefault();
+                e.stopPropagation();
+                setSelectedIds(formElements.map(el => el.id));
+                return;
+            }
+
             if (selectedIds.length === 0) return;
             if (['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return;
 
@@ -303,16 +319,10 @@ const Layout = () => {
                     setSelectedIds([]);
                 }
             }
-
-            // Ctrl+A - Select All
-            if (e.ctrlKey && e.key === 'a') {
-                e.preventDefault();
-                setSelectedIds(formElements.map(el => el.id));
-            }
         };
 
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
+        window.addEventListener('keydown', handleKeyDown, { capture: true });
+        return () => window.removeEventListener('keydown', handleKeyDown, { capture: true });
     }, [selectedIds, gridSize, formElements]);
 
 

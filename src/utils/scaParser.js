@@ -106,9 +106,12 @@ export const parseSCAContent = (text, setCanvasSize, setWidgets, setSelectedId, 
     const nameToIdMap = {}; // Map objName -> generated ID
 
     objects.forEach(obj => {
+        // Generate unique ID for every object
+        obj.id = `obj_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
         if (obj.objName) {
             objectsMap[obj.objName] = obj;
-            nameToIdMap[obj.objName] = `obj_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            nameToIdMap[obj.objName] = obj.id;
         }
     });
 
@@ -164,8 +167,8 @@ export const parseSCAContent = (text, setCanvasSize, setWidgets, setSelectedId, 
             const registryItem = componentRegistry.find(c => c.type === mappedType);
             const defaultProps = registryItem ? registryItem.defaultProps : {};
 
-            // Use pre-generated ID if available, otherwise generate new (shouldn't happen for named objects)
-            const id = nameToIdMap[obj.objName] || `obj_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            // Use the unique ID generated in the first pass
+            const id = obj.id;
 
             // Resolve parent ID
             let parentId = null;
