@@ -265,6 +265,91 @@ const Layout = () => {
         };
     }, [resizing, resizeStart, initialStates, resizeHandle, gridSize, showGrid, selectionBox, formElements, activeTool, drawingRect, dragReference]);
 
+    // --- SELECTION, MOVING & RESIZING ---
+    const handleWidgetClick = (e, id) => {
+        e.stopPropagation();
+
+        let newSelection = [];
+        if (e.ctrlKey) {
+            newSelection = selectedIds.includes(id)
+                ? selectedIds.filter(i => i !== id)
+                : [...selectedIds, id];
+        } else {
+            newSelection = selectedIds.includes(id) ? selectedIds : [id];
+        }
+
+        setSelectedIds(newSelection);
+        // Start moving immediately on click
+        handleInteractionStart(e, id, null, newSelection);
+    };
+
+    const handleCanvasMouseDown = (e) => {
+        if (activeTool) {
+            setDrawingRect({
+                startX: e.clientX,
+                startY: e.clientY,
+                currentX: e.clientX,
+                currentY: e.clientY
+            });
+            return;
+        }
+
+        // Start selection box if not Ctrl key (Ctrl key might be for adding to selection, but drag-select usually clears first unless shift/ctrl)
+        // User asked for "click empty space... clears".
+        if (!e.ctrlKey) {
+            setSelectedIds([]);
+        }
+
+        setSelectionBox({
+            startX: e.clientX,
+            startY: e.clientY,
+            currentX: e.clientX,
+            currentY: e.clientY
+        });
+    };
+
+    const handleCanvasClick = () => {
+        // Handled by mouse up logic (small drag = click)
+    };
+
+    const handleInteractionStart = (e, id, handle, overrideSelection = null) => {
+        e.stopPropagation();
+
+        const currentSelection = overrideSelection || selectedIds;
+        const targetIds = handle ? [id] : currentSelection;
+
+        // Helper to check if an element has an ancestor in the list
+        const hasAncestorInList = (id, list) => {
+            const el = formElements.find(e => e.id === id);
+            if (!el || !el.parentId) return false;
+            if (list.includes(el.parentId)) return true;
+            return hasAncestorInList(el.parentId, list);
+        };
+
+        // Filter out elements whose parents are also being moved
+        // This prevents double-movement (moving parent + moving child relative to parent)
+        const effectiveTargetIds = targetIds.filter(id => !hasAncestorInList(id, targetIds));
+
+        const states = {};
+        effectiveTargetIds.forEach(tid => {
+            const w = formElements.find(el => el.id === tid);
+            if (w) {
+                states[tid] = {
+                    x: w.x,
+                    y: w.y,
+                    w: w.props.width || 100,
+                    h: w.props.height || 20
+                };
+            }
+        });
+
+        setResizing(true);
+        setResizeHandle(handle);
+        setResizeStart({ x: e.clientX, y: e.clientY });
+        setInitialStates(states);
+        setDragReference(id); // Set the clicked element as reference
+    };
+
     // --- KEYBOARD HANDLING ---
     useEffect(() => {
         const handleKeyDown = (e) => {
