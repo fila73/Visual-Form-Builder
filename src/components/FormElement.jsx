@@ -88,6 +88,7 @@ const FormElement = ({ element, selected, onMouseDown, onResizeMouseDown }) => {
                 />
             ))}
             {props.visible === false && <div className="absolute top-0 right-0 bg-red-500 text-white text-[8px] px-1">HIDDEN</div>}
+            {props.enabled === false && <div className="absolute bottom-0 right-0 bg-gray-500 text-white text-[8px] px-1">DISABLED</div>}
         </div>
     );
 };
