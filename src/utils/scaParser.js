@@ -108,19 +108,10 @@ export const parseSCAContent = (text, setCanvasSize, setWidgets, setSelectedId, 
         if (obj.baseClass === 'form') {
             if (obj.props.width) formProps.width = obj.props.width;
             if (obj.props.height) formProps.height = obj.props.height;
+            if (obj.objName && setFormName) setFormName(obj.objName);
+            if (obj.props.name && setFormName) setFormName(obj.props.name);
             containerOffsets[obj.objName] = { x: 0, y: 0 };
             formMethods = obj.methods;
-        }
-    });
-
-    // Calculate container absolute positions (simple 1-level nesting support for now)
-    objects.forEach(obj => {
-        if (obj.baseClass === 'container') {
-            const parentOffset = containerOffsets[obj.parent?.split('.').pop()] || { x: 0, y: 0 };
-            containerOffsets[obj.objName] = {
-                x: parentOffset.x + (obj.props.left || 0),
-                y: parentOffset.y + (obj.props.top || 0)
-            };
         }
     });
 
@@ -179,7 +170,11 @@ export const parseSCAContent = (text, setCanvasSize, setWidgets, setSelectedId, 
 
             if (obj.props.caption) newWidget.props.text = obj.props.caption;
             if (obj.props.value) newWidget.props.text = obj.props.value; // Value overrides caption for some
-            if (obj.props.controlsource) newWidget.props.text = obj.props.controlsource; // Bindings shown as text
+            // if (obj.props.controlsource) newWidget.props.text = obj.props.controlsource; // REMOVED: ControlSource should not overwrite text
+
+            // Map Name if present (from [OBJNAME] or Name prop)
+            if (obj.objName) newWidget.props.name = obj.objName;
+            if (obj.props.name) newWidget.props.name = obj.props.name;
 
             if (obj.props.visible !== undefined) newWidget.props.visible = obj.props.visible;
             if (obj.props.enabled !== undefined) newWidget.props.enabled = obj.props.enabled;

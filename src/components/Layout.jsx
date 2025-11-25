@@ -219,31 +219,58 @@ const Layout = () => {
 
             const step = e.ctrlKey ? gridSize : 1;
             const isResize = e.shiftKey;
+            const isAlign = e.altKey;
 
             if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
                 e.preventDefault();
-                setFormElements(prev => prev.map(el => {
-                    if (!selectedIds.includes(el.id)) return el;
 
-                    let { x, y } = el;
-                    let { width, height } = el.props;
+                if (isAlign && selectedIds.length > 1) {
+                    // Alignment Logic
+                    const selectedElements = formElements.filter(el => selectedIds.includes(el.id));
+                    let targetValue;
 
-                    if (isResize) {
-                        if (e.key === 'ArrowRight') width += step;
-                        if (e.key === 'ArrowLeft') width -= step;
-                        if (e.key === 'ArrowDown') height += step;
-                        if (e.key === 'ArrowUp') height -= step;
-                        if (width < gridSize) width = gridSize;
-                        if (height < gridSize) height = gridSize;
-                    } else {
-                        if (e.key === 'ArrowRight') x += step;
-                        if (e.key === 'ArrowLeft') x -= step;
-                        if (e.key === 'ArrowDown') y += step;
-                        if (e.key === 'ArrowUp') y -= step;
+                    if (e.key === 'ArrowLeft') {
+                        // Align Left: Find min X
+                        targetValue = Math.min(...selectedElements.map(el => el.x));
+                        setFormElements(prev => prev.map(el => selectedIds.includes(el.id) ? { ...el, x: targetValue } : el));
+                    } else if (e.key === 'ArrowUp') {
+                        // Align Top: Find min Y
+                        targetValue = Math.min(...selectedElements.map(el => el.y));
+                        setFormElements(prev => prev.map(el => selectedIds.includes(el.id) ? { ...el, y: targetValue } : el));
+                    } else if (e.key === 'ArrowRight') {
+                        // Align Right: Find max Right edge (x + width)
+                        targetValue = Math.max(...selectedElements.map(el => el.x + (el.props.width || 0)));
+                        setFormElements(prev => prev.map(el => selectedIds.includes(el.id) ? { ...el, x: targetValue - (el.props.width || 0) } : el));
+                    } else if (e.key === 'ArrowDown') {
+                        // Align Bottom: Find max Bottom edge (y + height)
+                        targetValue = Math.max(...selectedElements.map(el => el.y + (el.props.height || 0)));
+                        setFormElements(prev => prev.map(el => selectedIds.includes(el.id) ? { ...el, y: targetValue - (el.props.height || 0) } : el));
                     }
+                } else {
+                    // Move / Resize Logic
+                    setFormElements(prev => prev.map(el => {
+                        if (!selectedIds.includes(el.id)) return el;
 
-                    return { ...el, x, y, props: { ...el.props, width, height } };
-                }));
+                        let { x, y } = el;
+                        let { width, height } = el.props;
+
+                        if (isResize) {
+                            if (e.key === 'ArrowRight') width += step;
+                            if (e.key === 'ArrowLeft') width -= step;
+                            if (e.key === 'ArrowDown') height += step;
+                            if (e.key === 'ArrowUp') height -= step;
+                            if (width < gridSize) width = gridSize;
+                            if (height < gridSize) height = gridSize;
+                        } else {
+                            if (e.key === 'ArrowRight') x += step;
+                            if (e.key === 'ArrowLeft') x -= step;
+                            if (e.key === 'ArrowDown') y += step;
+                            if (e.key === 'ArrowUp') y -= step;
+                        }
+
+                        return { ...el, x, y, props: { ...el.props, width, height } };
+                    }));
+                }
             }
 
             if (e.key === 'Delete' || e.key === 'Backspace') {
@@ -256,7 +283,7 @@ const Layout = () => {
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [selectedIds, gridSize]);
+    }, [selectedIds, gridSize, formElements]);
 
 
     // --- DRAG & DROP (New Components) ---
@@ -265,7 +292,7 @@ const Layout = () => {
     };
 
     const handleDragEnd = (event) => {
-        const { active, over, activatorEvent } = event;
+        const { active, over } = event;
 
         if (over && over.id === 'canvas-droppable') {
             const component = active.data.current.component;
@@ -273,10 +300,12 @@ const Layout = () => {
             let x = 0;
             let y = 0;
 
-            if (canvasRef.current && activatorEvent) {
+            if (active.rect.current.translated && canvasRef.current) {
                 const rect = canvasRef.current.getBoundingClientRect();
-                const rawX = activatorEvent.clientX - rect.left;
-                const rawY = activatorEvent.clientY - rect.top;
+                const droppedRect = active.rect.current.translated;
+
+                const rawX = droppedRect.left - rect.left;
+                const rawY = droppedRect.top - rect.top;
 
                 x = Math.round(rawX / gridSize) * gridSize;
                 y = Math.round(rawY / gridSize) * gridSize;
@@ -290,7 +319,7 @@ const Layout = () => {
             }
 
             const newElement = {
-                id: `element-${Date.now()}`,
+                id: `obj_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
                 type: component.type,
                 props: { ...component.defaultProps },
                 x,
@@ -617,8 +646,9 @@ const Layout = () => {
 
                                     <div className="mb-6">
                                         <div className="text-xs font-bold text-gray-500 uppercase mb-2">Vlastnosti</div>
+                                        <PropInput label="Name" value={selectedElement.props.name || ''} onChange={(v) => updateWidgetProp('name', v)} />
                                         {Object.entries({ visible: true, enabled: true, ...selectedElement.props }).map(([key, value]) => {
-                                            if (['width', 'height', 'style'].includes(key)) return null; // Skip handled props
+                                            if (['width', 'height', 'style', 'name'].includes(key)) return null; // Skip handled props
                                             return (
                                                 <PropInput
                                                     key={key}
@@ -673,6 +703,9 @@ const Layout = () => {
 
                                     <div className="mt-6 mb-6">
                                         <div className="text-xs font-bold text-gray-500 uppercase mb-2">Nastavení Formuláře</div>
+                                        <div className="mb-2">
+                                            <PropInput label="Name" value={formName} onChange={setFormName} />
+                                        </div>
                                         <div className="grid grid-cols-2 gap-2 mb-4">
                                             <PropInput label="Šířka" value={canvasSize.width} onChange={(v) => setCanvasSize({ ...canvasSize, width: parseInt(v) || 800 })} />
                                             <PropInput label="Výška" value={canvasSize.height} onChange={(v) => setCanvasSize({ ...canvasSize, height: parseInt(v) || 600 })} />
@@ -726,8 +759,22 @@ const Layout = () => {
 
                 <DragOverlay>
                     {activeDragItem ? (
-                        <div className="flex flex-col items-center justify-center p-2 bg-white border border-blue-500 rounded shadow-lg opacity-80 aspect-square w-20 h-20">
-                            <span className="text-xs font-medium">{activeDragItem.label}</span>
+                        <div style={{
+                            width: activeDragItem.defaultProps.width || 100,
+                            height: activeDragItem.defaultProps.height || 24,
+                            opacity: 0.8
+                        }}>
+                            <FormElement
+                                element={{
+                                    id: 'preview',
+                                    type: activeDragItem.type,
+                                    props: { ...activeDragItem.defaultProps, visible: true, enabled: true },
+                                    x: 0,
+                                    y: 0
+                                }}
+                                isSelected={false}
+                                onInteractionStart={() => { }}
+                            />
                         </div>
                     ) : null}
                 </DragOverlay>
