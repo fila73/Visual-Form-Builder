@@ -21,22 +21,22 @@ const DraggableItem = ({ component }) => {
             style={style}
             {...listeners}
             {...attributes}
-            className="flex flex-col items-center justify-center p-2 bg-white border border-gray-200 rounded hover:bg-gray-50 cursor-grab aspect-square"
+            className="flex items-center p-2 bg-white border border-gray-200 rounded hover:bg-gray-50 cursor-grab mb-1"
         >
-            <IconComponent size={24} className="text-gray-600 mb-2" />
-            <span className="text-xs text-gray-700 font-medium text-center">{component.label}</span>
+            <IconComponent size={16} className="text-gray-600 mr-2" />
+            <span className="text-xs text-gray-700 font-medium">{component.label}</span>
         </div>
     );
 };
 
 const Sidebar = () => {
     return (
-        <aside className="w-64 bg-white border-r border-gray-200 flex flex-col z-20">
-            <div className="p-4 border-b border-gray-200 font-bold text-gray-700 bg-gray-50">
+        <aside className="w-40 bg-white border-r border-gray-200 flex flex-col z-20">
+            <div className="p-2 border-b border-gray-200 font-bold text-gray-700 bg-gray-50 text-sm">
                 PRVKY
             </div>
-            <div className="flex-1 overflow-y-auto p-4">
-                <div className="grid grid-cols-2 gap-2">
+            <div className="flex-1 overflow-y-auto p-2">
+                <div className="flex flex-col">
                     {componentRegistry.map((component) => (
                         <DraggableItem key={component.type} component={component} />
                     ))}
