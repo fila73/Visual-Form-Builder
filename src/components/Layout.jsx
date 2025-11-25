@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { DndContext, DragOverlay, useSensor, useSensors, PointerSensor } from '@dnd-kit/core';
+import { useSensor, useSensors, PointerSensor } from '@dnd-kit/core';
 import Sidebar from './Sidebar';
+import { componentRegistry } from '../data/componentRegistry';
 import Canvas from './Canvas';
 import FormElement from './FormElement';
 import PropInput from './PropInput';
@@ -17,6 +18,8 @@ const Layout = () => {
     const [activeDragItem, setActiveDragItem] = useState(null);
     const [selectedIds, setSelectedIds] = useState([]);
     const [selectionBox, setSelectionBox] = useState(null); // { startX, startY, currentX, currentY }
+    const [activeTool, setActiveTool] = useState(null); // 'Button', 'Label', etc.
+    const [drawingRect, setDrawingRect] = useState(null); // { startX, startY, currentX, currentY }
 
     // Resizing & Moving State
     const [resizing, setResizing] = useState(false);
@@ -70,6 +73,16 @@ const Layout = () => {
     };
 
     const handleCanvasMouseDown = (e) => {
+        if (activeTool) {
+            setDrawingRect({
+                startX: e.clientX,
+                startY: e.clientY,
+                currentX: e.clientX,
+                currentY: e.clientY
+            });
+            return;
+        }
+
         // Start selection box if not Ctrl key (Ctrl key might be for adding to selection, but drag-select usually clears first unless shift/ctrl)
         // User asked for "click empty space... clears".
         if (!e.ctrlKey) {
@@ -138,6 +151,11 @@ const Layout = () => {
 
     useEffect(() => {
         const handleMouseMove = (e) => {
+            if (activeTool && drawingRect) {
+                setDrawingRect(prev => ({ ...prev, currentX: e.clientX, currentY: e.clientY }));
+                return;
+            }
+
             if (selectionBox) {
                 setSelectionBox(prev => ({ ...prev, currentX: e.clientX, currentY: e.clientY }));
                 return;
@@ -183,6 +201,40 @@ const Layout = () => {
         };
 
         const handleMouseUp = (e) => {
+            if (activeTool && drawingRect) {
+                if (canvasRef.current) {
+                    const rect = canvasRef.current.getBoundingClientRect();
+                    const startX = drawingRect.startX - rect.left;
+                    const startY = drawingRect.startY - rect.top;
+                    const currentX = drawingRect.currentX - rect.left;
+                    const currentY = drawingRect.currentY - rect.top;
+
+                    const x = Math.min(startX, currentX);
+                    const y = Math.min(startY, currentY);
+                    const width = Math.abs(currentX - startX);
+                    const height = Math.abs(currentY - startY);
+
+                    if (width > 5 && height > 5) {
+                        const component = componentRegistry.find(c => c.type === activeTool);
+                        if (component) {
+                            const newWidget = {
+                                id: `obj_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+                                type: component.type,
+                                props: { ...component.defaultProps, width, height },
+                                x: Math.round(x / gridSize) * gridSize,
+                                y: Math.round(y / gridSize) * gridSize
+                            };
+                            setFormElements(prev => [...prev, newWidget]);
+                            setSelectedIds([newWidget.id]);
+                            // Optionally clear active tool here if we want one-time use
+                            // setActiveTool(null); 
+                        }
+                    }
+                }
+                setDrawingRect(null);
+                return;
+            }
+
             if (selectionBox) {
                 if (canvasRef.current) {
                     const rect = canvasRef.current.getBoundingClientRect();
@@ -193,6 +245,7 @@ const Layout = () => {
                     const sbRight = sbLeft + sbWidth;
                     const sbBottom = sbTop + sbHeight;
 
+                    // ... rest of selection logic
                     if (sbWidth > 5 || sbHeight > 5) {
                         const newSelected = formElements.filter(el => {
                             const elRight = el.x + (el.props.width || 100);
@@ -233,7 +286,7 @@ const Layout = () => {
             window.removeEventListener('mousemove', handleMouseMove);
             window.removeEventListener('mouseup', handleMouseUp);
         };
-    }, [resizing, resizeStart, initialStates, resizeHandle, gridSize, showGrid, selectionBox, formElements]);
+    }, [resizing, resizeStart, initialStates, resizeHandle, gridSize, showGrid, selectionBox, formElements, activeTool, drawingRect]);
 
     // --- KEYBOARD HANDLING ---
     useEffect(() => {
@@ -643,194 +696,169 @@ const Layout = () => {
                 )
             }
 
-            <DndContext
-                sensors={sensors}
-                onDragStart={handleDragStart}
-                onDragEnd={handleDragEnd}
-            >
-                <div className="flex flex-1 overflow-hidden">
-                    <Sidebar />
-                    <Canvas
-                        elements={formElements}
-                        gridSize={gridSize}
-                        showGrid={showGrid}
-                        canvasRef={canvasRef}
-                        selectedIds={selectedIds}
-                        onWidgetClick={handleWidgetClick}
-                        onCanvasClick={handleCanvasClick}
-                        onResizeMouseDown={handleInteractionStart}
-                        canvasSize={canvasSize}
-                        onCanvasMouseDown={handleCanvasMouseDown}
-                        selectionBox={selectionBox}
-                    />
-                    <aside className="w-80 bg-white border-l border-gray-200 flex flex-col z-20 overflow-hidden">
-                        <div className="p-4 border-b border-gray-200 font-bold text-gray-700 bg-gray-50">
-                            VLASTNOSTI
-                        </div>
-                        <div className="flex-1 overflow-y-auto p-4">
-                            {selectedElement ? (
-                                <>
-                                    <div className="text-center mb-6">
-                                        <div className="font-bold text-lg text-gray-800">{selectedElement.type}</div>
-                                        <div className="text-xs text-gray-500">{selectedElement.id}</div>
+            <div className="flex flex-1 overflow-hidden">
+                <Sidebar activeTool={activeTool} onToolSelect={(tool) => setActiveTool(current => current === tool ? null : tool)} />
+                <Canvas
+                    elements={formElements}
+                    gridSize={gridSize}
+                    showGrid={showGrid}
+                    canvasRef={canvasRef}
+                    selectedIds={selectedIds}
+                    onWidgetClick={handleWidgetClick}
+                    onCanvasClick={handleCanvasClick}
+                    onResizeMouseDown={handleInteractionStart}
+                    canvasSize={canvasSize}
+                    onCanvasMouseDown={handleCanvasMouseDown}
+                    selectionBox={selectionBox}
+                    drawingRect={drawingRect}
+                    activeTool={activeTool}
+                />
+                <aside className="w-80 bg-white border-l border-gray-200 flex flex-col z-20 overflow-hidden">
+                    <div className="p-4 border-b border-gray-200 font-bold text-gray-700 bg-gray-50">
+                        VLASTNOSTI
+                    </div>
+                    <div className="flex-1 overflow-y-auto p-4">
+                        {selectedElement ? (
+                            <>
+                                <div className="text-center mb-6">
+                                    <div className="font-bold text-lg text-gray-800">{selectedElement.type}</div>
+                                    <div className="text-xs text-gray-500">{selectedElement.id}</div>
+                                </div>
+
+                                <div className="mb-6">
+                                    <div className="text-xs font-bold text-gray-500 uppercase mb-2">Rozměry a Pozice</div>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <PropInput label="X" value={selectedElement.x} onChange={(v) => {
+                                            const val = parseInt(v);
+                                            if (!isNaN(val)) {
+                                                setFormElements(els => els.map(el => selectedIds.includes(el.id) ? { ...el, x: val } : el));
+                                            }
+                                        }} />
+                                        <PropInput label="Y" value={selectedElement.y} onChange={(v) => {
+                                            const val = parseInt(v);
+                                            if (!isNaN(val)) {
+                                                setFormElements(els => els.map(el => selectedIds.includes(el.id) ? { ...el, y: val } : el));
+                                            }
+                                        }} />
+                                        <PropInput label="Šířka" value={selectedElement.props.width} onChange={(v) => updateWidgetProp('width', parseInt(v) || 0)} />
+                                        <PropInput label="Výška" value={selectedElement.props.height} onChange={(v) => updateWidgetProp('height', parseInt(v) || 0)} />
                                     </div>
+                                </div>
 
-                                    <div className="mb-6">
-                                        <div className="text-xs font-bold text-gray-500 uppercase mb-2">Rozměry a Pozice</div>
-                                        <div className="grid grid-cols-2 gap-2">
-                                            <PropInput label="X" value={selectedElement.x} onChange={(v) => {
-                                                const val = parseInt(v);
-                                                if (!isNaN(val)) {
-                                                    setFormElements(els => els.map(el => selectedIds.includes(el.id) ? { ...el, x: val } : el));
-                                                }
-                                            }} />
-                                            <PropInput label="Y" value={selectedElement.y} onChange={(v) => {
-                                                const val = parseInt(v);
-                                                if (!isNaN(val)) {
-                                                    setFormElements(els => els.map(el => selectedIds.includes(el.id) ? { ...el, y: val } : el));
-                                                }
-                                            }} />
-                                            <PropInput label="Šířka" value={selectedElement.props.width} onChange={(v) => updateWidgetProp('width', parseInt(v) || 0)} />
-                                            <PropInput label="Výška" value={selectedElement.props.height} onChange={(v) => updateWidgetProp('height', parseInt(v) || 0)} />
-                                        </div>
-                                    </div>
+                                <div className="mb-6">
+                                    <div className="text-xs font-bold text-gray-500 uppercase mb-2">Vlastnosti</div>
+                                    <PropInput label="Name" value={selectedElement.props.name || ''} onChange={(v) => updateWidgetProp('name', v)} />
+                                    {Object.entries({ visible: true, enabled: true, ...selectedElement.props }).map(([key, value]) => {
+                                        if (['width', 'height', 'style', 'name'].includes(key)) return null; // Skip handled props
+                                        return (
+                                            <PropInput
+                                                key={key}
+                                                label={key}
+                                                value={value}
+                                                onChange={(v) => updateWidgetProp(key, v)}
+                                            />
+                                        );
+                                    })}
+                                </div>
 
-                                    <div className="mb-6">
-                                        <div className="text-xs font-bold text-gray-500 uppercase mb-2">Vlastnosti</div>
-                                        <PropInput label="Name" value={selectedElement.props.name || ''} onChange={(v) => updateWidgetProp('name', v)} />
-                                        {Object.entries({ visible: true, enabled: true, ...selectedElement.props }).map(([key, value]) => {
-                                            if (['width', 'height', 'style', 'name'].includes(key)) return null; // Skip handled props
-                                            return (
-                                                <PropInput
-                                                    key={key}
-                                                    label={key}
-                                                    value={value}
-                                                    onChange={(v) => updateWidgetProp(key, v)}
-                                                />
-                                            );
-                                        })}
-                                    </div>
-
-                                    {!selectedElement.isMulti && (
-                                        <div>
-                                            <div className="text-xs font-bold text-gray-500 uppercase mb-2">Události</div>
-                                            <div className="space-y-1">
-                                                {(() => {
-                                                    const standardEvents = ['Click', 'RightClick', 'GotFocus', 'LostFocus'];
-                                                    // Find all events for this widget in formEvents
-                                                    const widgetEvents = Object.keys(formEvents)
-                                                        .filter(key => key.startsWith(`${selectedElement.id}_`))
-                                                        .map(key => key.replace(`${selectedElement.id}_`, ''));
-
-                                                    // Combine and deduplicate
-                                                    const allEvents = [...new Set([...standardEvents, ...widgetEvents])];
-
-                                                    return allEvents.map(evt => (
-                                                        <button
-                                                            key={evt}
-                                                            onClick={() => handleEditEvent(evt)}
-                                                            className={`w-full flex items-center justify-between px-2 py-1 text-sm border rounded hover:bg-gray-50 ${formEvents[`${selectedElement.id}_${evt}`] ? 'border-blue-300 bg-blue-50 text-blue-700' : 'border-gray-300 text-gray-600'}`}
-                                                        >
-                                                            <div className="flex items-center gap-2">
-                                                                <Zap size={12} className={formEvents[`${selectedElement.id}_${evt}`] ? 'text-blue-500' : 'text-gray-400'} />
-                                                                <span>{evt}</span>
-                                                            </div>
-                                                            {formEvents[`${selectedElement.id}_${evt}`] && <span className="text-[10px] font-bold">EDIT</span>}
-                                                        </button>
-                                                    ));
-                                                })()}
-                                            </div>
-                                        </div>
-                                    )}
-                                </>
-                            ) : (
-                                <>
-                                    <div className="text-center mt-10">
-                                        <div className="text-gray-300 mb-2">
-                                            <Monitor size={48} className="mx-auto" />
-                                        </div>
-                                        <div className="font-medium text-gray-600">Formulář</div>
-                                    </div>
-
-                                    <div className="mt-6 mb-6">
-                                        <div className="text-xs font-bold text-gray-500 uppercase mb-2">Nastavení Formuláře</div>
-                                        <div className="mb-2">
-                                            <PropInput label="Name" value={formName} onChange={setFormName} />
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-2 mb-4">
-                                            <PropInput label="Šířka" value={canvasSize.width} onChange={(v) => setCanvasSize({ ...canvasSize, width: parseInt(v) || 800 })} />
-                                            <PropInput label="Výška" value={canvasSize.height} onChange={(v) => setCanvasSize({ ...canvasSize, height: parseInt(v) || 600 })} />
-                                        </div>
-                                    </div>
-
-                                    <div className="mb-6">
-                                        <div className="text-xs font-bold text-gray-500 uppercase mb-2">Události Formuláře</div>
-                                        <div className="space-y-1">
-                                            {['Load', 'Unload', 'Init', 'Destroy', 'Click'].map(evt => (
-                                                <button
-                                                    key={evt}
-                                                    onClick={() => handleEditEvent(evt)}
-                                                    className={`w-full flex items-center justify-between px-2 py-1 text-sm border rounded hover:bg-gray-50 ${formEvents[`Form1_${evt}`] ? 'border-blue-300 bg-blue-50 text-blue-700' : 'border-gray-300 text-gray-600'}`}
-                                                >
-                                                    <div className="flex items-center gap-2">
-                                                        <Zap size={12} className={formEvents[`Form1_${evt}`] ? 'text-blue-500' : 'text-gray-400'} />
-                                                        <span>{evt}</span>
-                                                    </div>
-                                                    {formEvents[`Form1_${evt}`] && <span className="text-[10px] font-bold">EDIT</span>}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-
+                                {!selectedElement.isMulti && (
                                     <div>
-                                        <div className="flex items-center justify-between mb-2">
-                                            <div className="text-xs font-bold text-gray-500 uppercase">Vlastní Metody</div>
-                                            <button onClick={() => setActiveModal('addMethod')} className="p-1 hover:bg-gray-200 rounded text-blue-600">
-                                                <Plus size={14} />
-                                            </button>
-                                        </div>
+                                        <div className="text-xs font-bold text-gray-500 uppercase mb-2">Události</div>
                                         <div className="space-y-1">
-                                            {customMethods.length === 0 && <div className="text-xs text-gray-400 italic text-center py-2">Žádné metody</div>}
-                                            {customMethods.map(m => (
-                                                <div key={m.name} className="flex items-center justify-between px-2 py-1 text-sm border border-gray-300 rounded bg-white">
-                                                    <span className="font-mono text-xs">{m.name}({m.args})</span>
-                                                    <div className="flex items-center gap-1">
-                                                        <button onClick={() => handleEditMethod(m)} className="p-1 hover:bg-gray-100 rounded text-blue-600"><Edit size={12} /></button>
-                                                        <button onClick={() => handleDeleteMethod(m.name)} className="p-1 hover:bg-gray-100 rounded text-red-600"><Trash2 size={12} /></button>
-                                                    </div>
-                                                </div>
-                                            ))}
+                                            {(() => {
+                                                const standardEvents = ['Click', 'RightClick', 'GotFocus', 'LostFocus'];
+                                                // Find all events for this widget in formEvents
+                                                const widgetEvents = Object.keys(formEvents)
+                                                    .filter(key => key.startsWith(`${selectedElement.id}_`))
+                                                    .map(key => key.replace(`${selectedElement.id}_`, ''));
+
+                                                // Combine and deduplicate
+                                                const allEvents = [...new Set([...standardEvents, ...widgetEvents])];
+
+                                                return allEvents.map(evt => (
+                                                    <button
+                                                        key={evt}
+                                                        onClick={() => handleEditEvent(evt)}
+                                                        className={`w-full flex items-center justify-between px-2 py-1 text-sm border rounded hover:bg-gray-50 ${formEvents[`${selectedElement.id}_${evt}`] ? 'border-blue-300 bg-blue-50 text-blue-700' : 'border-gray-300 text-gray-600'}`}
+                                                    >
+                                                        <div className="flex items-center gap-2">
+                                                            <Zap size={12} className={formEvents[`${selectedElement.id}_${evt}`] ? 'text-blue-500' : 'text-gray-400'} />
+                                                            <span>{evt}</span>
+                                                        </div>
+                                                        {formEvents[`${selectedElement.id}_${evt}`] && <span className="text-[10px] font-bold">EDIT</span>}
+                                                    </button>
+                                                ));
+                                            })()}
                                         </div>
                                     </div>
-                                </>
-                            )}
-                        </div>
-                    </aside>
-                </div>
+                                )}
+                            </>
+                        ) : (
+                            <>
+                                <div className="text-center mt-10">
+                                    <div className="text-gray-300 mb-2">
+                                        <Monitor size={48} className="mx-auto" />
+                                    </div>
+                                    <div className="font-medium text-gray-600">Formulář</div>
+                                </div>
 
-                <DragOverlay>
-                    {activeDragItem ? (
-                        <div style={{
-                            width: activeDragItem.defaultProps.width || 100,
-                            height: activeDragItem.defaultProps.height || 24,
-                            opacity: 0.8
-                        }}>
-                            <FormElement
-                                element={{
-                                    id: 'preview',
-                                    type: activeDragItem.type,
-                                    props: { ...activeDragItem.defaultProps, visible: true, enabled: true },
-                                    x: 0,
-                                    y: 0
-                                }}
-                                isSelected={false}
-                                onInteractionStart={() => { }}
-                            />
-                        </div>
-                    ) : null}
-                </DragOverlay>
-            </DndContext >
-        </div >
+                                <div className="mt-6 mb-6">
+                                    <div className="text-xs font-bold text-gray-500 uppercase mb-2">Nastavení Formuláře</div>
+                                    <div className="mb-2">
+                                        <PropInput label="Name" value={formName} onChange={setFormName} />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2 mb-4">
+                                        <PropInput label="Šířka" value={canvasSize.width} onChange={(v) => setCanvasSize({ ...canvasSize, width: parseInt(v) || 800 })} />
+                                        <PropInput label="Výška" value={canvasSize.height} onChange={(v) => setCanvasSize({ ...canvasSize, height: parseInt(v) || 600 })} />
+                                    </div>
+                                </div>
+
+                                <div className="mb-6">
+                                    <div className="text-xs font-bold text-gray-500 uppercase mb-2">Události Formuláře</div>
+                                    <div className="space-y-1">
+                                        {['Load', 'Unload', 'Init', 'Destroy', 'Click'].map(evt => (
+                                            <button
+                                                key={evt}
+                                                onClick={() => handleEditEvent(evt)}
+                                                className={`w-full flex items-center justify-between px-2 py-1 text-sm border rounded hover:bg-gray-50 ${formEvents[`Form1_${evt}`] ? 'border-blue-300 bg-blue-50 text-blue-700' : 'border-gray-300 text-gray-600'}`}
+                                            >
+                                                <div className="flex items-center gap-2">
+                                                    <Zap size={12} className={formEvents[`Form1_${evt}`] ? 'text-blue-500' : 'text-gray-400'} />
+                                                    <span>{evt}</span>
+                                                </div>
+                                                {formEvents[`Form1_${evt}`] && <span className="text-[10px] font-bold">EDIT</span>}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <div className="flex items-center justify-between mb-2">
+                                        <div className="text-xs font-bold text-gray-500 uppercase">Vlastní Metody</div>
+                                        <button onClick={() => setActiveModal('addMethod')} className="p-1 hover:bg-gray-200 rounded text-blue-600">
+                                            <Plus size={14} />
+                                        </button>
+                                    </div>
+                                    <div className="space-y-1">
+                                        {customMethods.length === 0 && <div className="text-xs text-gray-400 italic text-center py-2">Žádné metody</div>}
+                                        {customMethods.map(m => (
+                                            <div key={m.name} className="flex items-center justify-between px-2 py-1 text-sm border border-gray-300 rounded bg-white">
+                                                <span className="font-mono text-xs">{m.name}({m.args})</span>
+                                                <div className="flex items-center gap-1">
+                                                    <button onClick={() => handleEditMethod(m)} className="p-1 hover:bg-gray-100 rounded text-blue-600"><Edit size={12} /></button>
+                                                    <button onClick={() => handleDeleteMethod(m.name)} className="p-1 hover:bg-gray-100 rounded text-red-600"><Trash2 size={12} /></button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </>
+                        )}
+                    </div>
+                </aside>
+            </div>
+
+        </div>
     );
 };
 

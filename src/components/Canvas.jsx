@@ -1,32 +1,36 @@
 import React from 'react';
-import { useDroppable } from '@dnd-kit/core';
 import FormElement from './FormElement';
 
-const Canvas = ({ elements, gridSize = 10, showGrid = true, canvasRef, selectedIds, onWidgetClick, onCanvasClick, onResizeMouseDown, canvasSize, onCanvasMouseDown, selectionBox }) => {
-    const { setNodeRef, isOver } = useDroppable({
-        id: 'canvas-droppable',
-    });
-
+const Canvas = ({
+    elements,
+    gridSize = 10,
+    showGrid = true,
+    canvasRef,
+    selectedIds,
+    onWidgetClick,
+    onCanvasClick,
+    onResizeMouseDown,
+    canvasSize,
+    onCanvasMouseDown,
+    selectionBox,
+    drawingRect,
+    activeTool
+}) => {
     const style = {
         backgroundColor: 'white',
         backgroundImage: showGrid ? 'radial-gradient(#ccc 1px, transparent 1px)' : 'none',
         backgroundSize: `${gridSize}px ${gridSize}px`,
+        cursor: activeTool ? 'crosshair' : 'default'
     };
 
-    // Combine refs
-    const setRefs = (node) => {
-        setNodeRef(node);
-        if (canvasRef) canvasRef.current = node;
-    };
-
-    const getSelectionBoxStyle = () => {
-        if (!selectionBox || !canvasRef?.current) return null;
+    const getBoxStyle = (box, color = '#3b82f6', bgColor = 'rgba(59, 130, 246, 0.2)') => {
+        if (!box || !canvasRef?.current) return null;
 
         const rect = canvasRef.current.getBoundingClientRect();
-        const left = Math.min(selectionBox.startX, selectionBox.currentX) - rect.left;
-        const top = Math.min(selectionBox.startY, selectionBox.currentY) - rect.top;
-        const width = Math.abs(selectionBox.currentX - selectionBox.startX);
-        const height = Math.abs(selectionBox.currentY - selectionBox.startY);
+        const left = Math.min(box.startX, box.currentX) - rect.left;
+        const top = Math.min(box.startY, box.currentY) - rect.top;
+        const width = Math.abs(box.currentX - box.startX);
+        const height = Math.abs(box.currentY - box.startY);
 
         return {
             left,
@@ -34,8 +38,8 @@ const Canvas = ({ elements, gridSize = 10, showGrid = true, canvasRef, selectedI
             width,
             height,
             position: 'absolute',
-            border: '1px solid #3b82f6', // blue-500
-            backgroundColor: 'rgba(59, 130, 246, 0.2)', // blue-500 with opacity
+            border: `1px solid ${color}`,
+            backgroundColor: bgColor,
             pointerEvents: 'none',
             zIndex: 50
         };
@@ -49,16 +53,15 @@ const Canvas = ({ elements, gridSize = 10, showGrid = true, canvasRef, selectedI
             </div>
             <div className="flex-1 p-8 overflow-auto flex justify-center items-center bg-gray-500" onMouseDown={onCanvasMouseDown}>
                 <div
-                    ref={setRefs}
+                    ref={canvasRef}
                     style={style}
                     className="bg-white shadow-lg relative transition-all duration-200"
-
                     onClick={(e) => e.stopPropagation()} // Prevent canvas click when clicking on the form area
                 >
                     <div style={{ width: `${canvasSize?.width || 800}px`, height: `${canvasSize?.height || 600}px`, position: 'relative' }}>
-                        {elements.length === 0 && (
+                        {elements.length === 0 && !activeTool && (
                             <div className="absolute inset-0 flex items-center justify-center text-gray-300 pointer-events-none">
-                                Drag and drop components here
+                                Select a tool and draw to create components
                             </div>
                         )}
                         {elements.map((el) => (
@@ -73,7 +76,8 @@ const Canvas = ({ elements, gridSize = 10, showGrid = true, canvasRef, selectedI
                                 </div>
                             </div>
                         ))}
-                        {selectionBox && <div style={getSelectionBoxStyle()} />}
+                        {selectionBox && <div style={getBoxStyle(selectionBox)} />}
+                        {drawingRect && <div style={getBoxStyle(drawingRect, '#10b981', 'rgba(16, 185, 129, 0.2)')} />}
                     </div>
                 </div>
             </div>
