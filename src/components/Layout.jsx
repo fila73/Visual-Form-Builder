@@ -6,7 +6,7 @@ import FormElement from './FormElement';
 import PropInput from './PropInput';
 import CodeEditorModal from './modals/CodeEditorModal';
 import AddMethodModal from './modals/AddMethodModal';
-import { Monitor, FolderOpen, Save, Code, Settings, Grid as GridIcon, Zap, Plus, Trash2, Edit } from 'lucide-react';
+import { Monitor, FolderOpen, Save, Code, Settings, Grid as GridIcon, Zap, Plus, Trash2, Edit, FilePlus } from 'lucide-react';
 import { parseSCAContent } from '../utils/scaParser';
 import { exportToPython } from '../utils/pythonExporter';
 import { save } from '@tauri-apps/plugin-dialog';
@@ -254,95 +254,7 @@ const Layout = () => {
         setDragReference(id); // Set the clicked element as reference
     };
 
-    // --- KEYBOARD HANDLING ---
-    useEffect(() => {
-        const handleKeyDown = (e) => {
-            // Ctrl+A - Select All
-            // Use e.code 'KeyA' which is layout-independent for the physical key 'A'
-            // Also check for e.key === 'a' or 'A' as fallback
-            if (e.ctrlKey && (e.code === 'KeyA' || e.key === 'a' || e.key === 'A')) {
-                // Ignore if focus is in an input or textarea
-                const tagName = e.target.tagName;
-                if (tagName === 'INPUT' || tagName === 'TEXTAREA' || e.target.isContentEditable) {
-                    return;
-                }
 
-                e.preventDefault();
-                e.stopPropagation();
-                setSelectedIds(formElements.map(el => el.id));
-                return;
-            }
-
-            if (selectedIds.length === 0) return;
-            if (['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return;
-
-            const step = e.ctrlKey ? gridSize : 1;
-            const isResize = e.shiftKey;
-            const isAlign = e.altKey;
-
-            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
-                e.preventDefault();
-
-                if (isAlign && selectedIds.length > 1) {
-                    // Alignment Logic
-                    const selectedElements = formElements.filter(el => selectedIds.includes(el.id));
-                    let targetValue;
-
-                    if (e.key === 'ArrowLeft') {
-                        // Align Left: Find min X
-                        targetValue = Math.min(...selectedElements.map(el => el.x));
-                        setFormElements(prev => prev.map(el => selectedIds.includes(el.id) ? { ...el, x: targetValue } : el));
-                    } else if (e.key === 'ArrowUp') {
-                        // Align Top: Find min Y
-                        targetValue = Math.min(...selectedElements.map(el => el.y));
-                        setFormElements(prev => prev.map(el => selectedIds.includes(el.id) ? { ...el, y: targetValue } : el));
-                    } else if (e.key === 'ArrowRight') {
-                        // Align Right: Find max Right edge (x + width)
-                        targetValue = Math.max(...selectedElements.map(el => el.x + (el.props.width || 0)));
-                        setFormElements(prev => prev.map(el => selectedIds.includes(el.id) ? { ...el, x: targetValue - (el.props.width || 0) } : el));
-                    } else if (e.key === 'ArrowDown') {
-                        // Align Bottom: Find max Bottom edge (y + height)
-                        targetValue = Math.max(...selectedElements.map(el => el.y + (el.props.height || 0)));
-                        setFormElements(prev => prev.map(el => selectedIds.includes(el.id) ? { ...el, y: targetValue - (el.props.height || 0) } : el));
-                    }
-                } else {
-                    // Move / Resize Logic
-                    setFormElements(prev => prev.map(el => {
-                        if (!selectedIds.includes(el.id)) return el;
-
-                        let { x, y } = el;
-                        let { width, height } = el.props;
-
-                        if (isResize) {
-                            if (e.key === 'ArrowRight') width += step;
-                            if (e.key === 'ArrowLeft') width -= step;
-                            if (e.key === 'ArrowDown') height += step;
-                            if (e.key === 'ArrowUp') height -= step;
-                            if (width < gridSize) width = gridSize;
-                            if (height < gridSize) height = gridSize;
-                        } else {
-                            if (e.key === 'ArrowRight') x += step;
-                            if (e.key === 'ArrowLeft') x -= step;
-                            if (e.key === 'ArrowDown') y += step;
-                            if (e.key === 'ArrowUp') y -= step;
-                        }
-
-                        return { ...el, x, y, props: { ...el.props, width, height } };
-                    }));
-                }
-            }
-
-            if (e.key === 'Delete' || e.key === 'Backspace') {
-                if (confirm(`Opravdu smazat vybrané prvky (${selectedIds.length})?`)) {
-                    setFormElements(prev => prev.filter(el => !selectedIds.includes(el.id)));
-                    setSelectedIds([]);
-                }
-            }
-        };
-
-        window.addEventListener('keydown', handleKeyDown, { capture: true });
-        return () => window.removeEventListener('keydown', handleKeyDown, { capture: true });
-    }, [selectedIds, gridSize, formElements]);
 
 
 
@@ -663,6 +575,17 @@ const Layout = () => {
         }
     };
 
+    const handleNewProject = () => {
+        if (confirm("Opravdu chcete začít nový projekt? Všechna neuložená data budou ztracena.")) {
+            setFormElements([]);
+            setCustomMethods([]);
+            setFormEvents({});
+            setFormName('Form1');
+            setCanvasSize({ width: 800, height: 600 });
+            setSelectedIds([]);
+        }
+    };
+
     // --- TOOLBAR HANDLERS ---
     const handleToolSelect = (tool) => {
         if (activeTool === tool) {
@@ -822,17 +745,9 @@ const Layout = () => {
                     <span>Visual Form Builder</span>
                 </div>
                 <div className="flex items-center space-x-2">
-                    <button
-                        onClick={() => setShowSettings(!showSettings)}
-                        className={`flex items-center space-x-1 px-3 py-1 rounded text-sm transition-colors ${showSettings ? 'bg-gray-600' : 'hover:bg-gray-700'}`}
-                    >
-                        <Settings size={14} />
-                        <span>Nastavení</span>
-                    </button>
-                    <div className="h-6 w-px bg-gray-600 mx-2"></div>
-                    <button onClick={() => fileInputScaRef.current.click()} className="flex items-center space-x-1 px-3 py-1 bg-purple-600 hover:bg-purple-700 rounded text-sm transition-colors">
-                        <FolderOpen size={14} />
-                        <span>Import VFP</span>
+                    <button onClick={handleNewProject} className="flex items-center space-x-1 px-3 py-1 bg-blue-500 hover:bg-blue-600 rounded text-sm transition-colors">
+                        <FilePlus size={14} />
+                        <span>New</span>
                     </button>
                     <button onClick={() => fileInputRef.current.click()} className="flex items-center space-x-1 px-3 py-1 bg-orange-600 hover:bg-orange-700 rounded text-sm transition-colors">
                         <FolderOpen size={14} />
@@ -840,11 +755,23 @@ const Layout = () => {
                     </button>
                     <button onClick={saveProject} className="flex items-center space-x-1 px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded text-sm transition-colors">
                         <Save size={14} />
-                        <span>Uložit Projekt</span>
+                        <span>Uložit JSON</span>
+                    </button>
+                    <button onClick={() => fileInputScaRef.current.click()} className="flex items-center space-x-1 px-3 py-1 bg-purple-600 hover:bg-purple-700 rounded text-sm transition-colors">
+                        <FolderOpen size={14} />
+                        <span>Import VFP</span>
                     </button>
                     <button onClick={handleExportToPython} className="flex items-center space-x-1 px-3 py-1 bg-green-600 hover:bg-green-700 rounded text-sm transition-colors">
                         <Code size={14} />
                         <span>Export Python</span>
+                    </button>
+                    <div className="h-6 w-px bg-gray-600 mx-2"></div>
+                    <button
+                        onClick={() => setShowSettings(!showSettings)}
+                        className={`flex items-center space-x-1 px-3 py-1 rounded text-sm transition-colors ${showSettings ? 'bg-gray-600' : 'hover:bg-gray-700'}`}
+                    >
+                        <Settings size={14} />
+                        <span>Nastavení</span>
                     </button>
                 </div>
             </header>
