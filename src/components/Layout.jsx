@@ -13,415 +13,166 @@ import { save } from '@tauri-apps/plugin-dialog';
 import { writeTextFile } from '@tauri-apps/plugin-fs';
 
 const Layout = () => {
-    const [formElements, setFormElements] = useState([]);
-    const [selectedIds, setSelectedIds] = useState([]);
-    const [selectionBox, setSelectionBox] = useState(null); // { startX, startY, currentX, currentY }
-    const [activeTool, setActiveTool] = useState(null); // 'Button', 'Label', etc.
-    const [isToolLocked, setIsToolLocked] = useState(false);
-    const [drawingRect, setDrawingRect] = useState(null); // { startX, startY, currentX, currentY }
+    const Layout = () => {
+        // --- STATE MANAGEMENT ---
 
-    // --- CLIPBOARD OPERATIONS ---
-    const copyToClipboard = async () => {
-        if (selectedIds.length === 0) return;
-        const selectedElements = formElements.filter(el => selectedIds.includes(el.id));
-        const json = JSON.stringify(selectedElements, null, 2);
-        try {
-            await navigator.clipboard.writeText(json);
-        } catch (err) {
-            console.error('Failed to copy:', err);
-        }
-    };
+        // List of all form elements (widgets) on the canvas
+        const [formElements, setFormElements] = useState([]);
 
-    const cutToClipboard = async () => {
-        await copyToClipboard();
-        setFormElements(prev => prev.filter(el => !selectedIds.includes(el.id)));
-        setSelectedIds([]);
-    };
+        // IDs of currently selected elements
+        const [selectedIds, setSelectedIds] = useState([]);
 
-    const pasteFromClipboard = async () => {
-        try {
-            const text = await navigator.clipboard.readText();
-            const widgets = JSON.parse(text);
-            if (!Array.isArray(widgets)) return;
+        // Selection box state for drag-to-select functionality
+        const [selectionBox, setSelectionBox] = useState(null); // { startX, startY, currentX, currentY }
 
-            // Generate Unique Name Helper (reused)
-            const getUniqueName = (type, elements) => {
-                const baseNameMap = {
-                    'label': 'Label',
-                    'textbox': 'Text',
-                    'editbox': 'Edit',
-                    'button': 'Command',
-                    'checkbox': 'Check',
-                    'radio': 'Option',
-                    'spinner': 'Spinner',
-                    'combobox': 'Combo',
-                    'grid': 'Grid',
-                    'shape': 'Shape',
-                    'image': 'Image',
-                    'container': 'Container'
-                };
-                const base = baseNameMap[type] || 'Object';
-                let counter = 1;
-                while (true) {
-                    const name = `${base}${counter}`;
-                    const exists = elements.some(el => (el.props.name || el.name) === name);
-                    if (!exists) return name;
-                    counter++;
-                }
-            };
+        // Currently active tool from the sidebar (e.g., 'Button', 'Label')
+        const [activeTool, setActiveTool] = useState(null);
 
-            const newWidgets = [];
-            const newIds = [];
+        // If true, the tool remains active after placing a widget (sticky mode)
+        const [isToolLocked, setIsToolLocked] = useState(false);
 
-            // Check for position collisions
-            const offset = { x: 0, y: 0 };
-            const firstWidget = widgets[0];
-            if (firstWidget) {
-                const existsAtPos = formElements.some(el =>
-                    Math.abs(el.x - firstWidget.x) < 5 && Math.abs(el.y - firstWidget.y) < 5
-                );
-                if (existsAtPos) {
-                    offset.x = 10;
-                    offset.y = 10;
-                }
+        // State for drawing a new widget on the canvas
+        const [drawingRect, setDrawingRect] = useState(null); // { startX, startY, currentX, currentY }
+
+        // --- CLIPBOARD OPERATIONS ---
+
+        /**
+         * Copies the selected elements to the system clipboard as a JSON string.
+         */
+        const copyToClipboard = async () => {
+            if (selectedIds.length === 0) return;
+            const selectedElements = formElements.filter(el => selectedIds.includes(el.id));
+            const json = JSON.stringify(selectedElements, null, 2);
+            try {
+                await navigator.clipboard.writeText(json);
+            } catch (err) {
+                console.error('Failed to copy:', err);
             }
+        };
 
-            // Process widgets
-            // We need to process them sequentially to ensure unique names are generated correctly against the growing list
-            let currentElements = [...formElements];
+        /**
+         * Cuts the selected elements (copy + delete).
+         */
+        const cutToClipboard = async () => {
+            await copyToClipboard();
+            setFormElements(prev => prev.filter(el => !selectedIds.includes(el.id)));
+            setSelectedIds([]);
+        };
 
-            widgets.forEach(w => {
-                const newId = `obj_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
-                const uniqueName = getUniqueName(w.type, currentElements);
+        /**
+         * Pastes elements from the clipboard.
+         * Handles unique name generation and position offsetting to avoid collisions.
+         */
+        const pasteFromClipboard = async () => {
+            try {
+                const text = await navigator.clipboard.readText();
+                const widgets = JSON.parse(text);
+                if (!Array.isArray(widgets)) return;
 
-                const newWidget = {
-                    ...w,
-                    id: newId,
-                    x: w.x + offset.x,
-                    y: w.y + offset.y,
-                    props: { ...w.props, name: uniqueName }
+                // Helper to generate a unique name for the pasted widget
+                const getUniqueName = (type, elements) => {
+                    const baseNameMap = {
+                        'label': 'Label',
+                        'textbox': 'Text',
+                        'editbox': 'Edit',
+                        'button': 'Command',
+                        'checkbox': 'Check',
+                        'radio': 'Option',
+                        'spinner': 'Spinner',
+                        'combobox': 'Combo',
+                        'grid': 'Grid',
+                        'shape': 'Shape',
+                        'image': 'Image',
+                        'container': 'Container'
+                    };
+                    const base = baseNameMap[type] || 'Object';
+                    let counter = 1;
+                    while (true) {
+                        const name = `${base}${counter}`;
+                        const exists = elements.some(el => (el.props.name || el.name) === name);
+                        if (!exists) return name;
+                        counter++;
+                    }
                 };
 
-                // If it had a parent that is also being pasted, we need to remap the parentId
-                // But for simple copy/paste, we might just paste them as new roots or keep relative if we copied a container + children
-                // For now, let's assume flat paste or simple offset. 
-                // If we copy a container and its child, the child's parentId points to the OLD container ID.
-                // We need to map old IDs to new IDs if we want to preserve hierarchy within the pasted block.
+                const newWidgets = [];
+                const newIds = [];
 
-                newWidgets.push(newWidget);
-                newIds.push(newId);
-                currentElements.push(newWidget);
-            });
-
-            // Fix parentIds for pasted group
-            const idMap = {};
-            widgets.forEach((w, i) => {
-                idMap[w.id] = newWidgets[i].id;
-            });
-
-            newWidgets.forEach(w => {
-                if (w.parentId && idMap[w.parentId]) {
-                    w.parentId = idMap[w.parentId];
-                } else {
-                    // If parent was NOT in the pasted group, what do we do?
-                    // Keep it? Or make it root?
-                    // If we paste into the same form, the parent might still exist.
-                    // But if we paste into a different context or if we want to detach, maybe root?
-                    // For now, let's keep it. If the parent exists in formElements, it will attach.
-                    // If not, it might be floating.
-                    // But the user requirement was "paste... if exists... offset".
-                }
-            });
-
-            setFormElements(prev => [...prev, ...newWidgets]);
-            setSelectedIds(newIds);
-
-        } catch (err) {
-            console.error('Failed to paste:', err);
-        }
-    };
-
-
-    // Resizing & Moving State
-    const [resizing, setResizing] = useState(false);
-    const [resizeHandle, setResizeHandle] = useState(null); // null = move, string = resize handle
-    const [resizeStart, setResizeStart] = useState({ x: 0, y: 0 });
-    const [initialStates, setInitialStates] = useState({}); // Map of id -> {x, y, w, h}
-    const [dragReference, setDragReference] = useState(null); // ID of the element used for snapping
-
-    // Project State
-    const [canvasSize, setCanvasSize] = useState({ width: 800, height: 600 });
-    const [formName, setFormName] = useState('Form1');
-    const [customMethods, setCustomMethods] = useState([]);
-    const [formEvents, setFormEvents] = useState({});
-
-    // Grid State
-    const [gridSize, setGridSize] = useState(10);
-    const [showGrid, setShowGrid] = useState(true);
-    const [showSettings, setShowSettings] = useState(false);
-
-    // Modals State
-    const [activeModal, setActiveModal] = useState(null); // 'code', 'addMethod'
-    const [editingCode, setEditingCode] = useState(null); // { type: 'event'|'method', id: string, name: string }
-
-    const canvasRef = useRef(null);
-    const fileInputRef = useRef(null);
-    const fileInputScaRef = useRef(null);
-
-    useEffect(() => {
-        const handleMouseMove = (e) => {
-            if (activeTool && drawingRect) {
-                setDrawingRect(prev => ({ ...prev, currentX: e.clientX, currentY: e.clientY }));
-                return;
-            }
-
-            if (selectionBox) {
-                setSelectionBox(prev => ({ ...prev, currentX: e.clientX, currentY: e.clientY }));
-                return;
-            }
-
-            if (!resizing) return;
-
-            const dx = e.clientX - resizeStart.x;
-            const dy = e.clientY - resizeStart.y;
-            const snap = (val) => showGrid ? Math.round(val / gridSize) * gridSize : val;
-
-            // Calculate consistent delta for movement
-            let moveDx = dx;
-            let moveDy = dy;
-
-            if (!resizeHandle && showGrid && dragReference) {
-                // Find reference element state
-                // If dragReference is not in initialStates (e.g. it's a child of a moved container), use the first available mover
-                const refId = initialStates[dragReference] ? dragReference : Object.keys(initialStates)[0];
-
-                if (refId && initialStates[refId]) {
-                    const refInit = initialStates[refId];
-                    const targetX = snap(refInit.x + dx);
-                    const targetY = snap(refInit.y + dy);
-                    moveDx = targetX - refInit.x;
-                    moveDy = targetY - refInit.y;
-                }
-            }
-
-            setFormElements(els => els.map(el => {
-                if (!initialStates[el.id]) return el;
-
-                const init = initialStates[el.id];
-                let newX = init.x;
-                let newY = init.y;
-                let newW = init.w;
-                let newH = init.h;
-
-                if (resizeHandle) {
-                    if (resizeHandle.includes('e')) newW = snap(init.w + dx);
-                    if (resizeHandle.includes('w')) {
-                        const snappedDx = snap(dx);
-                        newX = init.x + snappedDx;
-                        newW = init.w - snappedDx;
-                    }
-                    if (resizeHandle.includes('s')) newH = snap(init.h + dy);
-                    if (resizeHandle.includes('n')) {
-                        const snappedDy = snap(dy);
-                        newY = init.y + snappedDy;
-                        newH = init.h - snappedDy;
-                    }
-                    if (newW < gridSize) newW = gridSize;
-                    if (newH < gridSize) newH = gridSize;
-                } else {
-                    // Use the consistent delta
-                    newX = init.x + moveDx;
-                    newY = init.y + moveDy;
-                }
-
-                return { ...el, x: newX, y: newY, props: { ...el.props, width: newW, height: newH } };
-            }));
-        };
-
-        const handleMouseUp = (e) => {
-            if (activeTool && drawingRect) {
-                if (canvasRef.current) {
-                    const rect = canvasRef.current.getBoundingClientRect();
-                    const startX = drawingRect.startX - rect.left;
-                    const startY = drawingRect.startY - rect.top;
-                    const currentX = drawingRect.currentX - rect.left;
-                    const currentY = drawingRect.currentY - rect.top;
-
-                    const x = Math.min(startX, currentX);
-                    const y = Math.min(startY, currentY);
-                    const width = Math.abs(currentX - startX);
-                    const height = Math.abs(currentY - startY);
-
-                    if (width > 5 && height > 5) {
-                        const component = componentRegistry.find(c => c.type === activeTool);
-                        if (component) {
-                            // Generate Unique Name
-                            const getUniqueName = (type, elements) => {
-                                const baseNameMap = {
-                                    'label': 'Label',
-                                    'textbox': 'Text',
-                                    'editbox': 'Edit',
-                                    'button': 'Command',
-                                    'checkbox': 'Check',
-                                    'radio': 'Option',
-                                    'spinner': 'Spinner',
-                                    'combobox': 'Combo',
-                                    'grid': 'Grid',
-                                    'shape': 'Shape',
-                                    'image': 'Image',
-                                    'container': 'Container'
-                                };
-                                const base = baseNameMap[type] || 'Object';
-                                let counter = 1;
-                                while (true) {
-                                    const name = `${base}${counter}`;
-                                    const exists = elements.some(el => (el.props.name || el.name) === name);
-                                    if (!exists) return name;
-                                    counter++;
-                                }
-                            };
-
-                            const uniqueName = getUniqueName(component.type, formElements);
-
-                            const newWidget = {
-                                id: `obj_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
-                                type: component.type,
-                                props: { ...component.defaultProps, width, height, name: uniqueName },
-                                x: Math.round(x / gridSize) * gridSize,
-                                y: Math.round(y / gridSize) * gridSize
-                            };
-
-                            // Check for nesting on creation
-                            const getAbsoluteBounds = (elements) => {
-                                const bounds = {};
-                                const compute = (elId, xOffset, yOffset) => {
-                                    const el = elements.find(e => e.id === elId);
-                                    if (!el) return;
-                                    const absX = xOffset + el.x;
-                                    const absY = yOffset + el.y;
-                                    bounds[el.id] = { x: absX, y: absY, w: el.props.width, h: el.props.height, el };
-                                    elements.filter(c => c.parentId === el.id).forEach(child => compute(child.id, absX, absY));
-                                };
-                                elements.filter(e => !e.parentId).forEach(root => compute(root.id, 0, 0));
-                                return bounds;
-                            };
-
-                            const absBounds = getAbsoluteBounds(formElements);
-                            const widgetRect = { x: newWidget.x, y: newWidget.y, w: width, h: height };
-
-                            const contains = (container, rect) => {
-                                const cRight = container.x + (container.props.width || 0);
-                                const cBottom = container.y + (container.props.height || 0);
-                                const wRight = rect.x + rect.w;
-                                const wBottom = rect.y + rect.h;
-                                return (
-                                    rect.x >= container.x &&
-                                    rect.y >= container.y &&
-                                    wRight <= cRight &&
-                                    wBottom <= cBottom
-                                );
-                            };
-
-                            let bestParent = null;
-                            Object.values(absBounds).forEach(bound => {
-                                if (bound.el.type === 'container') {
-                                    if (contains({ x: bound.x, y: bound.y, props: { width: bound.w, height: bound.h } }, widgetRect)) {
-                                        if (!bestParent || (bound.w * bound.h < bestParent.w * bestParent.h)) {
-                                            bestParent = bound;
-                                        }
-                                    }
-                                }
-                            });
-
-                            if (bestParent) {
-                                newWidget.parentId = bestParent.el.id;
-                                newWidget.x = widgetRect.x - bestParent.x;
-                                newWidget.y = widgetRect.y - bestParent.y;
-                            }
-
-                            setFormElements(prev => [...prev, newWidget]);
-                            setSelectedIds([newWidget.id]);
-                        }
+                // Check for position collisions with the first widget in the pasted group
+                const offset = { x: 0, y: 0 };
+                const firstWidget = widgets[0];
+                if (firstWidget) {
+                    const existsAtPos = formElements.some(el =>
+                        Math.abs(el.x - firstWidget.x) < 5 && Math.abs(el.y - firstWidget.y) < 5
+                    );
+                    if (existsAtPos) {
+                        offset.x = 10;
+                        offset.y = 10;
                     }
                 }
-                setDrawingRect(null);
-                if (!isToolLocked) {
-                    setActiveTool(null);
-                }
-                return;
-            }
 
-            if (selectionBox) {
-                if (canvasRef.current) {
-                    const rect = canvasRef.current.getBoundingClientRect();
-                    const sbLeft = Math.min(selectionBox.startX, selectionBox.currentX) - rect.left;
-                    const sbTop = Math.min(selectionBox.startY, selectionBox.currentY) - rect.top;
-                    const sbWidth = Math.abs(selectionBox.currentX - selectionBox.startX);
-                    const sbHeight = Math.abs(selectionBox.currentY - selectionBox.startY);
-                    const sbRight = sbLeft + sbWidth;
-                    const sbBottom = sbTop + sbHeight;
+                // Process widgets sequentially to ensure unique names
+                let currentElements = [...formElements];
 
-                    if (sbWidth > 5 || sbHeight > 5) {
-                        const getAbsoluteBounds = (elements) => {
-                            const bounds = {};
-                            const compute = (elId, xOffset, yOffset) => {
-                                const el = elements.find(e => e.id === elId);
-                                if (!el) return;
-                                const absX = xOffset + el.x;
-                                const absY = yOffset + el.y;
-                                bounds[el.id] = { x: absX, y: absY, w: el.props.width, h: el.props.height };
-                                elements.filter(c => c.parentId === el.id).forEach(child => compute(child.id, absX, absY));
-                            };
-                            elements.filter(e => !e.parentId).forEach(root => compute(root.id, 0, 0));
-                            return bounds;
-                        };
-                        const absBounds = getAbsoluteBounds(formElements);
+                widgets.forEach(w => {
+                    const newId = `obj_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+                    const uniqueName = getUniqueName(w.type, currentElements);
 
-                        const newSelected = Object.entries(absBounds).filter(([id, bound]) => {
-                            const elRight = bound.x + (bound.w || 100);
-                            const elBottom = bound.y + (bound.h || 20);
-                            return (
-                                bound.x >= sbLeft &&
-                                bound.y >= sbTop &&
-                                elRight <= sbRight &&
-                                elBottom <= sbBottom
-                            );
-                        }).map(([id]) => id);
+                    const newWidget = {
+                        ...w,
+                        id: newId,
+                        x: w.x + offset.x,
+                        y: w.y + offset.y,
+                        props: { ...w.props, name: uniqueName }
+                    };
 
-                        if (e.ctrlKey) {
-                            setSelectedIds(prev => [...new Set([...prev, ...newSelected])]);
-                        } else {
-                            setSelectedIds(newSelected);
-                        }
-                    } else {
-                        if (!e.ctrlKey) setSelectedIds([]);
+                    newWidgets.push(newWidget);
+                    newIds.push(newId);
+                    currentElements.push(newWidget);
+                });
+
+                // Remap parent IDs if the parent is also being pasted
+                const idMap = {};
+                widgets.forEach((w, i) => {
+                    idMap[w.id] = newWidgets[i].id;
+                });
+
+                newWidgets.forEach(w => {
+                    if (w.parentId && idMap[w.parentId]) {
+                        w.parentId = idMap[w.parentId];
                     }
-                }
-                setSelectionBox(null);
-                return;
-            }
+                });
 
-            if (resizing) {
-                setFormElements(prev => reparentElements(prev, selectedIds));
-                setResizing(false);
-                setResizeHandle(null);
-                setInitialStates({});
+                setFormElements(prev => [...prev, ...newWidgets]);
+                setSelectedIds(newIds);
+
+            } catch (err) {
+                console.error('Failed to paste:', err);
             }
         };
 
-        window.addEventListener('mousemove', handleMouseMove);
-        window.addEventListener('mouseup', handleMouseUp);
 
-        return () => {
-            window.removeEventListener('mousemove', handleMouseMove);
-            window.removeEventListener('mouseup', handleMouseUp);
-        };
-    }, [resizing, resizeStart, initialStates, resizeHandle, gridSize, showGrid, selectionBox, formElements, activeTool, drawingRect, dragReference]);
+        // Resizing & Moving State
+        const [resizing, setResizing] = useState(false);
+        const [resizeHandle, setResizeHandle] = useState(null); // null = move, string = resize handle
+        const [resizeStart, setResizeStart] = useState({ x: 0, y: 0 });
+        const [initialStates, setInitialStates] = useState({}); // Map of id -> {x, y, w, h}
+        const [dragReference, setDragReference] = useState(null); // ID of the element used for snapping
 
-    // --- SELECTION, MOVING & RESIZING ---
-    const handleWidgetClick = (e, id) => {
-        e.stopPropagation();
+        // Project State
+        const [canvasSize, setCanvasSize] = useState({ width: 800, height: 600 });
+        const [formName, setFormName] = useState('Form1');
+        const [customMethods, setCustomMethods] = useState([]);
+        const [formEvents, setFormEvents] = useState({});
 
+        // Grid State
+        const [gridSize, setGridSize] = useState(10);
+        const [showGrid, setShowGrid] = useState(true);
+        const [showSettings, setShowSettings] = useState(false);
+
+        // Modals State
+        const [activeModal, setActiveModal] = useState(null); // 'code', 'addMethod'
+        const [editingCode, setEditingCode] = useState(null); // { type: 'event'|'method', id: string, name: string }
         let newSelection = [];
         if (e.ctrlKey) {
             newSelection = selectedIds.includes(id)
@@ -597,8 +348,17 @@ const Layout = () => {
 
 
     // --- REPARENTING LOGIC ---
+
+    /**
+     * Checks if moved/resized elements should be reparented (nested) into a container.
+     * This function calculates absolute bounds, checks for containment, and updates parentId and relative coordinates.
+     * 
+     * @param {Array} elements - Current list of form elements.
+     * @param {Array} modifiedIds - IDs of elements that were moved or resized.
+     * @returns {Array} - Updated list of elements with correct parent-child relationships.
+     */
     const reparentElements = (elements, modifiedIds) => {
-        // Helper to get absolute bounds
+        // Helper to get absolute bounds of all elements (handling nested coordinates)
         const getAbsoluteBounds = (els) => {
             const bounds = {};
             const compute = (elId, xOffset, yOffset) => {
@@ -618,9 +378,7 @@ const Layout = () => {
         let changed = false;
 
         // Only process modified elements that are "roots" of the modification (not children of other modified elements)
-        // For property updates, modifiedIds usually contains just one ID.
-        // For drag/resize, it might be multiple.
-
+        // This prevents double-processing if a container and its child are both selected.
         const topLevelModified = modifiedIds.filter(id => {
             const el = elements.find(e => e.id === id);
             if (!el || !el.parentId) return true;
@@ -639,7 +397,7 @@ const Layout = () => {
             const widgetRect = { x: bound.x, y: bound.y, w: bound.w, h: bound.h };
             let bestParent = null;
 
-            // Helper to check containment
+            // Helper to check if a rect is fully contained within a container
             const contains = (container, rect) => {
                 const cRight = container.x + (container.props.width || 0);
                 const cBottom = container.y + (container.props.height || 0);
@@ -653,9 +411,10 @@ const Layout = () => {
                 );
             };
 
+            // Find the best parent (smallest container that fully contains the widget)
             Object.values(absBounds).forEach(targetBound => {
                 if (targetBound.el.type === 'container' && targetBound.el.id !== id) {
-                    // Check if target is descendant of current widget
+                    // Check if target is descendant of current widget (prevent circular nesting)
                     let isChild = false;
                     let p = targetBound.el;
                     while (p.parentId) {
@@ -678,6 +437,7 @@ const Layout = () => {
             const el = newElements[elIndex];
 
             if (bestParent) {
+                // Attach to new parent
                 if (el.parentId !== bestParent.el.id) {
                     newElements[elIndex] = {
                         ...el,
@@ -688,6 +448,7 @@ const Layout = () => {
                     changed = true;
                 }
             } else {
+                // Detach from parent (become root)
                 if (el.parentId) {
                     newElements[elIndex] = {
                         ...el,

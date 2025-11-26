@@ -2,6 +2,15 @@ import React from 'react';
 import { componentRegistry } from '../data/componentRegistry';
 import * as Icons from 'lucide-react';
 
+/**
+ * Renders a single tool item in the sidebar.
+ * 
+ * @param {Object} component - The component definition from the registry.
+ * @param {boolean} isActive - Whether this tool is currently selected.
+ * @param {boolean} isLocked - Whether the tool selection is locked (for multiple placements).
+ * @param {Function} onClick - Handler for single click (select).
+ * @param {Function} onDoubleClick - Handler for double click (lock).
+ */
 const ToolItem = ({ component, isActive, isLocked, onClick, onDoubleClick }) => {
     const IconComponent = Icons[component.icon] || Icons.HelpCircle;
 
@@ -23,6 +32,15 @@ const ToolItem = ({ component, isActive, isLocked, onClick, onDoubleClick }) => 
     );
 };
 
+/**
+ * Sidebar component containing the palette of available form widgets.
+ * Allows users to select tools for placing widgets on the canvas.
+ * 
+ * @param {string} activeTool - The currently selected tool type.
+ * @param {boolean} isToolLocked - Whether the current tool is locked.
+ * @param {Function} onToolSelect - Handler for tool selection.
+ * @param {Function} onToolLock - Handler for tool locking.
+ */
 const Sidebar = ({ activeTool, isToolLocked, onToolSelect, onToolLock }) => {
     return (
         <aside className="w-14 bg-white border-r border-gray-200 flex flex-col z-20 items-center py-2">
