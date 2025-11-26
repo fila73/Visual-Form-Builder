@@ -14,7 +14,8 @@ const Canvas = ({
     onCanvasMouseDown,
     selectionBox,
     drawingRect,
-    activeTool
+    activeTool,
+    formName
 }) => {
     const style = {
         backgroundColor: 'white',
@@ -48,7 +49,7 @@ const Canvas = ({
     return (
         <main className="flex-1 bg-gray-500 relative overflow-hidden flex flex-col" onClick={onCanvasClick}>
             <div className="p-1 bg-gray-600 text-white text-xs px-4 flex justify-between">
-                <span>Form1: {canvasSize?.width || 800}x{canvasSize?.height || 600}px</span>
+                <span>{formName}: {canvasSize?.width || 800}x{canvasSize?.height || 600}px</span>
                 <span>Grid: {showGrid ? `${gridSize}px` : 'Off'}</span>
             </div>
             <div className="flex-1 p-8 overflow-auto flex justify-center items-center bg-gray-500" onMouseDown={onCanvasMouseDown}>

@@ -1142,6 +1142,7 @@ const Layout = () => {
                     selectionBox={selectionBox}
                     drawingRect={drawingRect}
                     activeTool={activeTool}
+                    formName={formName}
                 />
                 <aside className="w-80 bg-white border-l border-gray-200 flex flex-col z-20 overflow-hidden">
                     <div className="p-4 border-b border-gray-200 font-bold text-gray-700 bg-gray-50">
