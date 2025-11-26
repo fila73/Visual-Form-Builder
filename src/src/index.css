@@ -1,8 +1,0 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-.canvas-grid {
-    background-image: radial-gradient(#ccc 1px, transparent 1px);
-    background-size: 10px 10px;
-}
