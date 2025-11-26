@@ -1058,7 +1058,7 @@ const Layout = () => {
             <header className="h-12 bg-gray-800 text-white flex items-center justify-between px-4 shrink-0 z-30">
                 <div className="flex items-center space-x-2 font-bold text-lg">
                     <Monitor className="text-yellow-400" size={20} />
-                    <span>Visual FoxPro Web</span>
+                    <span>Visual Form Builder</span>
                 </div>
                 <div className="flex items-center space-x-2">
                     <button
