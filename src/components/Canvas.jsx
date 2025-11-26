@@ -1,27 +1,6 @@
 import React from 'react';
 import FormElement from './FormElement';
 
-/**
- * Canvas Component
- * Renders the main design area where widgets are placed.
- * Handles grid rendering, selection boxes, and recursive widget rendering.
- * 
- * @param {Object} props
- * @param {Array} props.elements - List of form elements.
- * @param {number} props.gridSize - Size of the grid in pixels.
- * @param {boolean} props.showGrid - Whether to display the grid.
- * @param {Object} props.canvasRef - Ref to the canvas DOM element.
- * @param {Array} props.selectedIds - IDs of selected elements.
- * @param {Function} props.onWidgetClick - Handler for widget clicks.
- * @param {Function} props.onCanvasClick - Handler for canvas clicks.
- * @param {Function} props.onResizeMouseDown - Handler for resize start.
- * @param {Object} props.canvasSize - Dimensions of the canvas {width, height}.
- * @param {Function} props.onCanvasMouseDown - Handler for canvas mouse down (selection/drawing).
- * @param {Object} props.selectionBox - State for drag-to-select box.
- * @param {Object} props.drawingRect - State for drawing new widgets.
- * @param {string} props.activeTool - Currently active tool.
- * @param {string} props.formName - Name of the form.
- */
 const Canvas = ({
     elements,
     gridSize = 10,
@@ -38,7 +17,6 @@ const Canvas = ({
     activeTool,
     formName
 }) => {
-    // Dynamic style for the canvas background (grid pattern)
     const style = {
         backgroundColor: 'white',
         backgroundImage: showGrid ? 'radial-gradient(#ccc 1px, transparent 1px)' : 'none',
@@ -46,10 +24,6 @@ const Canvas = ({
         cursor: activeTool ? 'crosshair' : 'default'
     };
 
-    /**
-     * Helper to calculate styles for selection/drawing boxes.
-     * Converts absolute coordinates to relative canvas coordinates.
-     */
     const getBoxStyle = (box, color = '#3b82f6', bgColor = 'rgba(59, 130, 246, 0.2)') => {
         if (!box || !canvasRef?.current) return null;
 

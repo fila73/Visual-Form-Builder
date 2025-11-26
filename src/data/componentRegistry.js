@@ -1,8 +1,4 @@
 
-/**
- * Enumeration of available component types.
- * These string constants are used throughout the application to identify widget types.
- */
 export const COMPONENT_TYPES = {
     LABEL: 'label',
     TEXT_BOX: 'textbox',
@@ -18,16 +14,6 @@ export const COMPONENT_TYPES = {
     CONTAINER: 'container',
 };
 
-/**
- * Registry of all available components (widgets) in the form builder.
- * Each entry defines the component's metadata, icon, and default properties.
- * 
- * Structure:
- * - type: One of COMPONENT_TYPES
- * - label: Display name in the UI
- * - icon: Icon name from lucide-react
- * - defaultProps: Initial properties when the widget is created
- */
 export const componentRegistry = [
     {
         type: COMPONENT_TYPES.LABEL,

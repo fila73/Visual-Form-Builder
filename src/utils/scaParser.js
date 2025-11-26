@@ -1,26 +1,13 @@
-/**
- * Utility for parsing legacy SCA (FoxPro SCCTEXT) files.
- * This module handles the conversion of legacy form definitions into the application's
- * internal widget structure.
- */
 import { componentRegistry } from '../data/componentRegistry';
 
-/**
- * Parses the content of an SCA file and updates the application state.
- * 
- * @param {string} text - The raw content of the SCA file.
- * @param {Function} setCanvasSize - State setter for canvas dimensions.
- * @param {Function} setWidgets - State setter for the list of form widgets.
- * @param {Function} setSelectedId - State setter for the currently selected widget ID.
- * @param {Function} setFormEvents - State setter for form-level events/methods.
- * @param {Function} setFormName - State setter for the form name.
- */
+// Helper to find component type by label or other heuristic if needed
+// In the legacy code, it imported WIDGET_TYPES. Here we might need to map differently if registry structure changed.
+// For now, I'll adapt it to use our componentRegistry structure or just string types if they match.
+
 export const parseSCAContent = (text, setCanvasSize, setWidgets, setSelectedId, setFormEvents, setFormName) => {
     const lines = text.split('\n');
     const newWidgets = [];
     let currentRecord = {};
-
-    // State flags for parsing
     let inProperties = false;
     let inMethods = false;
     let methodBuffer = "";
@@ -28,9 +15,6 @@ export const parseSCAContent = (text, setCanvasSize, setWidgets, setSelectedId, 
     // Temporary storage for all objects to resolve hierarchy later
     const objects = [];
 
-    /**
-     * Map legacy FoxPro control types to internal component types.
-     */
     const typeMap = {
         'commandbutton': 'button',
         'textbox': 'textbox',
@@ -47,11 +31,9 @@ export const parseSCAContent = (text, setCanvasSize, setWidgets, setSelectedId, 
         'container': 'container'
     };
 
-    // Iterate through each line of the SCA file
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i].trim();
 
-        // Detect start of a new record
         if (line === '[ RECORD]') {
             if (currentRecord.objName) {
                 objects.push(currentRecord);
@@ -62,7 +44,7 @@ export const parseSCAContent = (text, setCanvasSize, setWidgets, setSelectedId, 
             continue;
         }
 
-        // Parse Metadata sections (CLASS, OBJNAME, PARENT, etc.)
+        // Parse Metadata
         const metaMatch = line.match(/^\[([\w\s]+)\]\s*(.*)/);
         if (metaMatch) {
             const key = metaMatch[1].trim();
@@ -73,13 +55,12 @@ export const parseSCAContent = (text, setCanvasSize, setWidgets, setSelectedId, 
             if (key === 'OBJNAME') currentRecord.objName = val;
             if (key === 'PARENT') currentRecord.parent = val;
 
-            // Handle block markers
             if (key === 'START PROPERTIES') { inProperties = true; continue; }
             if (key === 'END PROPERTIES') { inProperties = false; continue; }
             if (key === 'START METHODS') { inMethods = true; continue; }
             if (key === 'END METHODS') {
                 inMethods = false;
-                // Parse methods from the accumulated buffer
+                // Parse methods from buffer
                 const procedures = methodBuffer.split('PROCEDURE');
                 procedures.forEach(proc => {
                     if (!proc.trim()) return;
@@ -93,7 +74,6 @@ export const parseSCAContent = (text, setCanvasSize, setWidgets, setSelectedId, 
             }
         }
 
-        // Parse Properties
         if (inProperties) {
             const propMatch = line.match(/^(\w+)\s*=\s*(.*)/);
             if (propMatch) {
@@ -110,7 +90,6 @@ export const parseSCAContent = (text, setCanvasSize, setWidgets, setSelectedId, 
             }
         }
 
-        // Accumulate Method Code
         if (inMethods) {
             methodBuffer += lines[i] + '\n'; // Keep original line for indentation
         }
@@ -136,13 +115,7 @@ export const parseSCAContent = (text, setCanvasSize, setWidgets, setSelectedId, 
         }
     });
 
-    /**
-     * Helper to get absolute position of a parent container.
-     * Recursively traverses up the parent chain to calculate the total offset.
-     * 
-     * @param {string} parentName - The name of the parent object.
-     * @returns {Object} - {x, y} offset.
-     */
+    // Helper to get absolute position of a parent container
     const getParentOffset = (parentName) => {
         // Handle dot notation if present
         const parts = parentName.split('.');
@@ -233,7 +206,8 @@ export const parseSCAContent = (text, setCanvasSize, setWidgets, setSelectedId, 
             if (obj.props.height) newWidget.props.height = obj.props.height;
             else if (mappedType === 'textbox') newWidget.props.height = 23; // Default height for TextBox
 
-            // Map visual styles
+            // We need to adapt to the new props structure where style is often used
+            // But for now, let's keep it simple and assume the renderer handles it or we map it to style here
             const styleUpdates = {};
             if (obj.props.width) styleUpdates.width = `${obj.props.width}px`;
             if (obj.props.height) styleUpdates.height = `${obj.props.height}px`;
@@ -245,6 +219,7 @@ export const parseSCAContent = (text, setCanvasSize, setWidgets, setSelectedId, 
 
             if (obj.props.caption) newWidget.props.text = obj.props.caption;
             if (obj.props.value) newWidget.props.text = obj.props.value; // Value overrides caption for some
+            // if (obj.props.controlsource) newWidget.props.text = obj.props.controlsource; // REMOVED: ControlSource should not overwrite text
 
             // Map Name if present (from [OBJNAME] or Name prop)
             // Use finalName which has uniqueness check applied

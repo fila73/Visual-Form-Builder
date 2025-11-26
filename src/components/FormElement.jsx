@@ -2,21 +2,6 @@ import React from 'react';
 import { COMPONENT_TYPES } from '../data/componentRegistry';
 import { CheckSquare, Image as ImageIcon } from 'lucide-react';
 
-/**
- * FormElement Component
- * Wrapper for all widget types. Handles common functionality like:
- * - Selection styling
- * - Resize handles
- * - Visibility and Enabled states
- * - Rendering the specific widget content based on type
- * 
- * @param {Object} props
- * @param {Object} props.element - The widget data object.
- * @param {boolean} props.selected - Whether the widget is currently selected.
- * @param {Function} props.onMouseDown - Handler for selecting the widget.
- * @param {Function} props.onResizeMouseDown - Handler for starting a resize operation.
- * @param {React.ReactNode} props.children - Child elements (for containers).
- */
 const FormElement = ({ element, selected, onMouseDown, onResizeMouseDown, children }) => {
     const { type, props } = element;
 
@@ -30,13 +15,10 @@ const FormElement = ({ element, selected, onMouseDown, onResizeMouseDown, childr
 
     const opacity = props.visible === false ? 'opacity-40' : 'opacity-100';
     const pointerEvents = props.enabled === false ? 'pointer-events-none grayscale' : '';
-
-    // Base class includes selection ring and hover effects
     const baseClass = `w-full h-full select-none group ${selected ? 'ring-2 ring-blue-600 z-50 shadow-lg' : 'hover:ring-1 hover:ring-blue-300 hover:bg-blue-50/10'} ${opacity}`;
 
     let content = null;
 
-    // Render specific widget content based on type
     switch (type) {
         case COMPONENT_TYPES.LABEL:
             content = <div style={{ color: props.color || props.style?.color, fontSize: props.style?.fontSize }} className="w-full h-full flex items-center px-1 overflow-hidden whitespace-nowrap">{props.text}</div>;
@@ -91,7 +73,6 @@ const FormElement = ({ element, selected, onMouseDown, onResizeMouseDown, childr
             content = <div>Unknown: {type}</div>;
     }
 
-    // Resize handles configuration (8 directions)
     const handles = [
         { dir: 'n', cursor: 'ns-resize', style: { top: -3, left: '50%', marginLeft: -3 } },
         { dir: 's', cursor: 'ns-resize', style: { bottom: -3, left: '50%', marginLeft: -3 } },
