@@ -24,7 +24,23 @@ const Layout = () => {
     const copyToClipboard = async () => {
         if (selectedIds.length === 0) return;
         const selectedElements = formElements.filter(el => selectedIds.includes(el.id));
-        const json = JSON.stringify(selectedElements, null, 2);
+
+        // Collect events for selected elements
+        const eventsToCopy = {};
+        selectedElements.forEach(el => {
+            Object.keys(formEvents).forEach(key => {
+                if (key.startsWith(`${el.id}_`)) {
+                    eventsToCopy[key] = formEvents[key];
+                }
+            });
+        });
+
+        const payload = {
+            widgets: selectedElements,
+            events: eventsToCopy
+        };
+
+        const json = JSON.stringify(payload, null, 2);
         try {
             await navigator.clipboard.writeText(json);
         } catch (err) {
@@ -41,8 +57,23 @@ const Layout = () => {
     const pasteFromClipboard = async () => {
         try {
             const text = await navigator.clipboard.readText();
-            const widgets = JSON.parse(text);
-            if (!Array.isArray(widgets)) return;
+            let clipboardData;
+            try {
+                clipboardData = JSON.parse(text);
+            } catch (e) { return; }
+
+            let widgets = [];
+            let events = {};
+
+            // Handle both old format (array of widgets) and new format (object)
+            if (Array.isArray(clipboardData)) {
+                widgets = clipboardData;
+            } else if (clipboardData.widgets && Array.isArray(clipboardData.widgets)) {
+                widgets = clipboardData.widgets;
+                events = clipboardData.events || {};
+            } else {
+                return;
+            }
 
             // Generate Unique Name Helper (reused)
             const getUniqueName = (type, elements) => {
@@ -102,12 +133,6 @@ const Layout = () => {
                     props: { ...w.props, name: uniqueName }
                 };
 
-                // If it had a parent that is also being pasted, we need to remap the parentId
-                // But for simple copy/paste, we might just paste them as new roots or keep relative if we copied a container + children
-                // For now, let's assume flat paste or simple offset. 
-                // If we copy a container and its child, the child's parentId points to the OLD container ID.
-                // We need to map old IDs to new IDs if we want to preserve hierarchy within the pasted block.
-
                 newWidgets.push(newWidget);
                 newIds.push(newId);
                 currentElements.push(newWidget);
@@ -122,18 +147,28 @@ const Layout = () => {
             newWidgets.forEach(w => {
                 if (w.parentId && idMap[w.parentId]) {
                     w.parentId = idMap[w.parentId];
-                } else {
-                    // If parent was NOT in the pasted group, what do we do?
-                    // Keep it? Or make it root?
-                    // If we paste into the same form, the parent might still exist.
-                    // But if we paste into a different context or if we want to detach, maybe root?
-                    // For now, let's keep it. If the parent exists in formElements, it will attach.
-                    // If not, it might be floating.
-                    // But the user requirement was "paste... if exists... offset".
+                }
+            });
+
+            // Process Events
+            const newEvents = {};
+            Object.entries(events).forEach(([key, code]) => {
+                // Key is OldID_EventName
+                // Find OldID in idMap
+                const parts = key.split('_');
+                // ID can contain underscores, so we need to match against known old IDs
+                // The old IDs are keys in idMap
+                const oldId = Object.keys(idMap).find(oid => key.startsWith(oid + '_'));
+
+                if (oldId) {
+                    const eventName = key.substring(oldId.length + 1);
+                    const newId = idMap[oldId];
+                    newEvents[`${newId}_${eventName}`] = code;
                 }
             });
 
             setFormElements(prev => [...prev, ...newWidgets]);
+            setFormEvents(prev => ({ ...prev, ...newEvents }));
             setSelectedIds(newIds);
 
         } catch (err) {
@@ -738,7 +773,41 @@ const Layout = () => {
                     setFormElements(data.widgets);
                     setCanvasSize(data.canvasSize);
                     setCustomMethods(data.customMethods || []);
-                    setFormEvents(data.formEvents || {});
+
+                    // Restore Form Events: Map Names back to IDs
+                    const restoredEvents = {};
+                    const events = data.formEvents || {};
+
+                    Object.entries(events).forEach(([key, code]) => {
+                        // Check if key is already an ID (backward compatibility)
+                        if (key.startsWith('obj_') || key.startsWith('Form1_')) {
+                            restoredEvents[key] = code;
+                            return;
+                        }
+
+                        // Try to parse Name_Event
+                        const parts = key.split('_');
+                        if (parts.length >= 2) {
+                            const eventName = parts.pop(); // Last part is event
+                            const widgetName = parts.join('_'); // Rest is name (can contain underscores)
+
+                            if (widgetName === 'Form1') {
+                                restoredEvents[`Form1_${eventName}`] = code;
+                            } else {
+                                const widget = data.widgets.find(w => (w.props.name || w.name) === widgetName);
+                                if (widget) {
+                                    restoredEvents[`${widget.id}_${eventName}`] = code;
+                                } else {
+                                    // Widget not found, maybe keep it or discard?
+                                    // Let's keep it with original key just in case
+                                    // restoredEvents[key] = code; 
+                                    // Actually, if we can't map it, it's useless internally. Discard.
+                                }
+                            }
+                        }
+                    });
+
+                    setFormEvents(restoredEvents);
                     if (data.formName) setFormName(data.formName);
                     setSelectedIds([]);
                 }
@@ -803,7 +872,48 @@ const Layout = () => {
             console.log("Selected path:", path);
             if (!path) return; // User cancelled
 
-            const data = JSON.stringify({ canvasSize, widgets: formElements, customMethods, formEvents, formName }, null, 2);
+            // Prepare events for export: Convert IDs to Names
+            const exportEvents = {};
+            Object.entries(formEvents).forEach(([key, code]) => {
+                const parts = key.split('_');
+                if (parts.length >= 2) {
+                    const id = parts[0] + (parts[1].match(/^\d+$/) ? '_' + parts[1] : ''); // Handle obj_TIMESTAMP_RANDOM format vs Form1
+                    // Actually, our IDs are usually 'obj_...' or 'Form1'.
+                    // If it starts with 'obj_', the ID is everything until the last underscore? No, ID is fixed format.
+                    // Wait, our IDs are `obj_${Date.now()}_${random}`. That contains underscores.
+                    // Splitting by underscore is risky if ID contains underscores.
+
+                    // Better approach: Find which widget ID is the prefix of the key.
+                    let widgetId = null;
+                    let eventName = null;
+
+                    if (key.startsWith('Form1_')) {
+                        widgetId = 'Form1';
+                        eventName = key.substring(6);
+                    } else {
+                        // Try to match against known widget IDs
+                        const widget = formElements.find(w => key.startsWith(w.id + '_'));
+                        if (widget) {
+                            widgetId = widget.id;
+                            eventName = key.substring(widgetId.length + 1);
+                        }
+                    }
+
+                    if (widgetId && eventName) {
+                        if (widgetId === 'Form1') {
+                            exportEvents[`Form1_${eventName}`] = code;
+                        } else {
+                            const widget = formElements.find(w => w.id === widgetId);
+                            if (widget) {
+                                const name = widget.props.name || widget.name;
+                                exportEvents[`${name}_${eventName}`] = code;
+                            }
+                        }
+                    }
+                }
+            });
+
+            const data = JSON.stringify({ canvasSize, widgets: formElements, customMethods, formEvents: exportEvents, formName }, null, 2);
             console.log("Writing project data to:", path);
             await writeTextFile(path, data);
             console.log("Project saved successfully");

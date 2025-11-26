@@ -157,6 +157,7 @@ export const exportToPython = (widgets, customMethods, canvasSize, downloadFile,
     // 2. Widget Events
     widgets.forEach(w => {
         const events = ['Click', 'InteractiveChange', 'Init', 'RightClick', 'GotFocus', 'LostFocus'];
+        const wName = w.props.name || w.name;
         events.forEach(evt => {
             const code = formEvents[`${w.id}_${evt}`] || formEvents[`${w.id}_${evt.toLowerCase()}`];
             if (code && code.trim() !== "") {
@@ -164,7 +165,7 @@ export const exportToPython = (widgets, customMethods, canvasSize, downloadFile,
                 // Python method name: widgetName_event
                 // Note: InteractiveChange -> interactiveChange (camelCase in VFP usually, but let's stick to one convention)
                 // Let's use the event name as suffix
-                pyCode += `    def ${w.name}_${evt === 'InteractiveChange' ? 'interactiveChange' : evt.toLowerCase()}(self, event=None):\n` + (translatedCode.split('\n').map(l => `        ${l}`).join('\n') || '        pass') + `\n\n`;
+                pyCode += `    def ${wName}_${evt === 'InteractiveChange' ? 'interactiveChange' : evt.toLowerCase()}(self, event=None):\n` + (translatedCode.split('\n').map(l => `        ${l}`).join('\n') || '        pass') + `\n\n`;
             }
         });
     });
