@@ -9,7 +9,7 @@ import AddMethodModal from './modals/AddMethodModal';
 import { Monitor, FolderOpen, Save, Code, Settings, Grid as GridIcon, Zap, Plus, Trash2, Edit, FilePlus } from 'lucide-react';
 import { parseSCAContent } from '../utils/scaParser';
 import { exportToPython } from '../utils/pythonExporter';
-import { save } from '@tauri-apps/plugin-dialog';
+import { save, ask } from '@tauri-apps/plugin-dialog';
 import { writeTextFile } from '@tauri-apps/plugin-fs';
 
 const Layout = () => {
@@ -814,8 +814,13 @@ const Layout = () => {
         }
     };
 
-    const handleNewProject = () => {
-        if (confirm("Opravdu chcete začít nový projekt? Všechna neuložená data budou ztracena.")) {
+    const handleNewProject = async () => {
+        const answer = await ask("Opravdu chcete začít nový projekt? Všechna neuložená data budou ztracena.", {
+            title: 'Nový projekt',
+            kind: 'warning'
+        });
+
+        if (answer) {
             setFormElements([]);
             setCustomMethods([]);
             setFormEvents({});
@@ -986,7 +991,7 @@ const Layout = () => {
                 <div className="flex items-center space-x-2">
                     <button onClick={handleNewProject} className="flex items-center space-x-1 px-3 py-1 bg-blue-500 hover:bg-blue-600 rounded text-sm transition-colors">
                         <FilePlus size={14} />
-                        <span>New</span>
+                        <span>Nový</span>
                     </button>
                     <button onClick={() => fileInputRef.current.click()} className="flex items-center space-x-1 px-3 py-1 bg-orange-600 hover:bg-orange-700 rounded text-sm transition-colors">
                         <FolderOpen size={14} />
