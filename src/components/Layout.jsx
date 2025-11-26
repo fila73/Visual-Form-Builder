@@ -1020,10 +1020,24 @@ const Layout = () => {
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [selectedIds, formElements, gridSize]);
 
+    const imageInputRef = useRef(null);
+
+    const handleImageSelect = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            updateWidgetProp('src', event.target.result);
+        };
+        reader.readAsDataURL(file);
+        e.target.value = '';
+    };
+
     return (
-        <div className="flex flex-col h-screen w-screen overflow-hidden">
+        <div className="flex flex-col h-screen w-screen overflow-hidden" onContextMenu={(e) => e.preventDefault()}>
             <input type="file" ref={fileInputRef} className="hidden" accept=".json" onChange={handleLoadProject} />
             <input type="file" ref={fileInputScaRef} className="hidden" accept=".sca,.txt" onChange={handleImportSCA} />
+            <input type="file" ref={imageInputRef} className="hidden" accept="image/*" onChange={handleImageSelect} />
 
             {/* Modals */}
             <CodeEditorModal
@@ -1170,8 +1184,8 @@ const Layout = () => {
                                 <div className="mb-6">
                                     <div className="text-xs font-bold text-gray-500 uppercase mb-2">Vlastnosti</div>
                                     <PropInput label="Name" value={selectedElement.props.name || ''} onChange={(v) => updateWidgetProp('name', v)} />
-                                    {Object.entries({ visible: true, enabled: true, ...selectedElement.props }).map(([key, value]) => {
-                                        if (['width', 'height', 'style', 'name'].includes(key)) return null; // Skip handled props
+                                    {Object.entries({ ...selectedElement.props }).map(([key, value]) => {
+                                        if (['width', 'height', 'style', 'name', 'visible', 'enabled', 'src', 'stretch', 'repeat'].includes(key)) return null; // Skip handled props
                                         return (
                                             <PropInput
                                                 key={key}
@@ -1181,6 +1195,34 @@ const Layout = () => {
                                             />
                                         );
                                     })}
+
+                                    {selectedElement.type === 'image' && (
+                                        <>
+                                            <div className="mb-2">
+                                                <label className="text-[10px] font-bold text-gray-500 uppercase w-full block mb-1">Src</label>
+                                                <div className="flex gap-1">
+                                                    <input
+                                                        type="text"
+                                                        value={selectedElement.props.src || ''}
+                                                        onChange={(e) => updateWidgetProp('src', e.target.value)}
+                                                        className="flex-1 border border-gray-300 rounded px-2 py-1 text-sm focus:border-blue-500 focus:outline-none"
+                                                    />
+                                                    <button
+                                                        onClick={() => imageInputRef.current.click()}
+                                                        className="px-3 py-1 bg-gray-100 border border-gray-300 hover:bg-gray-200 rounded text-xs font-bold text-gray-600"
+                                                        title="Vybrat soubor"
+                                                    >
+                                                        ...
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <PropInput label="Stretch" value={selectedElement.props.stretch || false} onChange={(v) => updateWidgetProp('stretch', v)} />
+                                            <PropInput label="Repeat" value={selectedElement.props.repeat || false} onChange={(v) => updateWidgetProp('repeat', v)} />
+                                        </>
+                                    )}
+
+                                    <PropInput label="Visible" value={selectedElement.props.visible !== false} onChange={(v) => updateWidgetProp('visible', v === 'true' || v === true)} />
+                                    <PropInput label="Enabled" value={selectedElement.props.enabled !== false} onChange={(v) => updateWidgetProp('enabled', v === 'true' || v === true)} />
                                 </div>
 
                                 {!selectedElement.isMulti && (

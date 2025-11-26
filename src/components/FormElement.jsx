@@ -30,7 +30,7 @@ const FormElement = ({ element, selected, onMouseDown, onResizeMouseDown, childr
             content = <div className={`w-full h-full bg-white text-black p-1 overflow-hidden border border-gray-600 shadow-inner text-xs whitespace-pre-wrap ${pointerEvents}`}>{props.text || props.value}</div>;
             break;
         case COMPONENT_TYPES.BUTTON:
-            content = <div className={`w-full h-full flex items-center justify-center text-sm border-b-2 border-r-2 border-gray-400 bg-gray-100 active:border-t-2 active:border-l-2 active:border-b-0 active:border-r-0 ${pointerEvents}`} style={{ backgroundColor: props.bg || props.style?.backgroundColor, borderTop: '1px solid white', borderLeft: '1px solid white' }}>{props.text}</div>;
+            content = <div className={`w-full h-full flex items-center justify-center text-sm text-black border-b-2 border-r-2 border-gray-400 bg-gray-100 active:border-t-2 active:border-l-2 active:border-b-0 active:border-r-0 ${pointerEvents}`} style={{ backgroundColor: props.bg || props.style?.backgroundColor, borderTop: '1px solid white', borderLeft: '1px solid white' }}>{props.text}</div>;
             break;
         case COMPONENT_TYPES.CHECK_BOX:
             content = <div className={`w-full h-full flex items-center gap-1.5 px-1 ${pointerEvents}`}><div className={`w-4 h-4 border border-gray-600 bg-white flex items-center justify-center`}>{props.checked && <CheckSquare size={12} className="text-black" />}</div><span className="truncate">{props.label || props.text}</span></div>;
@@ -53,7 +53,13 @@ const FormElement = ({ element, selected, onMouseDown, onResizeMouseDown, childr
             content = <div className="w-full h-full" style={{ backgroundColor: props.bg || props.style?.backgroundColor, border: `1px solid ${props.color || '#000'}` }}></div>;
             break;
         case COMPONENT_TYPES.IMAGE:
-            content = <div className="w-full h-full border border-dashed border-gray-400 bg-gray-50 flex flex-col items-center justify-center text-gray-400"><ImageIcon size={24} /><span className="text-[10px] mt-1">Obrázek</span></div>;
+            const imgStyle = {
+                backgroundImage: `url(${props.src})`,
+                backgroundSize: props.stretch ? '100% 100%' : 'auto',
+                backgroundRepeat: props.repeat && !props.stretch ? 'repeat' : 'no-repeat',
+                backgroundPosition: 'top left'
+            };
+            content = <div className="w-full h-full border border-dashed border-gray-400 bg-gray-50 text-gray-400" style={imgStyle}>{!props.src && <div className="flex flex-col items-center justify-center h-full"><ImageIcon size={24} /><span className="text-[10px] mt-1">Obrázek</span></div>}</div>;
             break;
         case COMPONENT_TYPES.CONTAINER:
             content = (

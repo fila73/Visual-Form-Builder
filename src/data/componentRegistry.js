@@ -171,6 +171,8 @@ export const componentRegistry = [
             width: 50,
             height: 50,
             style: {},
+            stretch: false,
+            repeat: false,
         },
     },
     {
