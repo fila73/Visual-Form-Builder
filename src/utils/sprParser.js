@@ -122,69 +122,126 @@ export const parseSPRContent = (text, setCanvasSize, setWidgets, setSelectedId, 
             const activateMatch = cleanLine.match(/ACTIVATE\s+(\w+)/i);
             const deactivateMatch = cleanLine.match(/DEACTIVATE\s+(\w+)/i);
 
+            // Helper to parse embedded widgets (Container, Grid)
+            const parseEmbeddedWidgets = (procCode) => {
+                // Check for nested window definition
+                const nestedWinMatch = procCode.match(/DEFINE\s+WINDOW\s+(\w+)\s+FROM\s+([\d\.,\s\(\)\+\-\*\/]+)\s+TO\s+([\d\.,\s\(\)\+\-\*\/]+)\s+IN\s+(\w+)/i);
+
+                if (nestedWinMatch) {
+                    const winName = nestedWinMatch[1];
+                    const fromPart = nestedWinMatch[2];
+                    const toPart = nestedWinMatch[3];
+
+                    const SROWS = 25;
+                    const SCOLS = 80;
+                    const evalExpr = (expr) => {
+                        try {
+                            if (!expr) return 0;
+                            let e = expr.toUpperCase().replace(/SROWS\(\)/g, SROWS).replace(/SCOLS\(\)/g, SCOLS);
+                            e = e.replace(/INT\(/g, 'Math.floor(');
+                            return new Function(`return ${e}`)();
+                        } catch (err) { return 0; }
+                    };
+                    const splitCoords = (str) => {
+                        const commaIdx = str.indexOf(',');
+                        if (commaIdx === -1) return [0, 0];
+                        return [str.substring(0, commaIdx), str.substring(commaIdx + 1)];
+                    };
+
+                    const [r1s, c1s] = splitCoords(fromPart);
+                    const [r2s, c2s] = splitCoords(toPart);
+                    const row1 = evalExpr(r1s);
+                    const col1 = evalExpr(c1s);
+                    const row2 = evalExpr(r2s);
+                    const col2 = evalExpr(c2s);
+
+                    if (!isNaN(row1) && !isNaN(col1) && !isNaN(row2) && !isNaN(col2)) {
+                        const wChars = col2 - col1 + 1;
+                        const hRows = row2 - row1 + 1;
+                        const width = Math.round(wChars * COL_WIDTH);
+                        const height = Math.round(hRows * ROW_HEIGHT);
+                        const x = Math.round(col1 * COL_WIDTH + PADDING_LEFT);
+                        const y = Math.round(row1 * ROW_HEIGHT + PADDING_TOP);
+
+                        const id = generateId();
+                        newWidgets.push({
+                            id,
+                            type: 'container',
+                            x, y,
+                            props: {
+                                width,
+                                height,
+                                name: winName,
+                                style: { border: '1px solid #ccc', backgroundColor: '#f0f0f0' }
+                            }
+                        });
+                    }
+                }
+
+                // Check for BROWSE command
+                const browseMatch = procCode.match(/BROWSE\s+FIELDS\s+(.+?)\s+IN\s+(\w+)/i);
+                if (browseMatch) {
+                    const fieldsPart = browseMatch[1];
+                    const containerName = browseMatch[2];
+
+                    // Find the container widget
+                    const container = newWidgets.find(w => w.props.name === containerName);
+
+                    if (container) {
+                        const columns = [];
+                        // Split fields by comma, respecting quotes
+                        const fieldDefs = fieldsPart.split(/,(?=(?:[^']*'[^']*')*[^']*$)/).map(f => f.trim());
+
+                        fieldDefs.forEach(def => {
+                            // Parse field definition: NAME :R :H='Title'
+                            const nameMatch = def.match(/^([\w\.]+)/);
+                            const name = nameMatch ? nameMatch[1] : 'Column';
+
+                            const isReadOnly = /:R/i.test(def);
+                            const headerMatch = def.match(/:H\s*=\s*['"](.*?)['"]/i);
+                            const header = headerMatch ? headerMatch[1] : name;
+
+                            columns.push({
+                                id: generateId(),
+                                header: header,
+                                field: name,
+                                width: 100, // Default width
+                                readonly: isReadOnly
+                            });
+                        });
+
+                        const gridId = generateId();
+                        newWidgets.push({
+                            id: gridId,
+                            type: 'grid',
+                            x: container.x,
+                            y: container.y,
+                            parentId: container.id,
+                            props: {
+                                width: container.props.width,
+                                height: container.props.height,
+                                name: 'Grid_' + containerName,
+                                columns: columns,
+                                data: [],
+                                style: { fontSize: '14px', border: '1px solid #999' }
+                            }
+                        });
+                    }
+                }
+            };
+
             if (showMatch) {
                 const procName = showMatch[1].toUpperCase();
-                if (procedures[procName]) finalFormEvents['Form1_Init'] = procedures[procName];
+                if (procedures[procName]) {
+                    finalFormEvents['Form1_Init'] = procedures[procName];
+                    parseEmbeddedWidgets(procedures[procName]);
+                }
             }
             if (activateMatch) {
                 const procName = activateMatch[1].toUpperCase();
                 if (procedures[procName]) {
                     finalFormEvents['Form1_Load'] = procedures[procName];
-
-                    // Check for nested window definition in this procedure
-                    const procCode = procedures[procName];
-                    const nestedWinMatch = procCode.match(/DEFINE\s+WINDOW\s+(\w+)\s+FROM\s+([\d\.,\s\(\)\+\-\*\/]+)\s+TO\s+([\d\.,\s\(\)\+\-\*\/]+)\s+IN\s+(\w+)/i);
-
-                    if (nestedWinMatch) {
-                        const winName = nestedWinMatch[1];
-                        const fromPart = nestedWinMatch[2];
-                        const toPart = nestedWinMatch[3];
-
-                        const SROWS = 25;
-                        const SCOLS = 80;
-                        const evalExpr = (expr) => {
-                            try {
-                                if (!expr) return 0;
-                                let e = expr.toUpperCase().replace(/SROWS\(\)/g, SROWS).replace(/SCOLS\(\)/g, SCOLS);
-                                e = e.replace(/INT\(/g, 'Math.floor(');
-                                return new Function(`return ${e}`)();
-                            } catch (err) { return 0; }
-                        };
-                        const splitCoords = (str) => {
-                            const commaIdx = str.indexOf(',');
-                            if (commaIdx === -1) return [0, 0];
-                            return [str.substring(0, commaIdx), str.substring(commaIdx + 1)];
-                        };
-
-                        const [r1s, c1s] = splitCoords(fromPart);
-                        const [r2s, c2s] = splitCoords(toPart);
-                        const row1 = evalExpr(r1s);
-                        const col1 = evalExpr(c1s);
-                        const row2 = evalExpr(r2s);
-                        const col2 = evalExpr(c2s);
-
-                        if (!isNaN(row1) && !isNaN(col1) && !isNaN(row2) && !isNaN(col2)) {
-                            const wChars = col2 - col1 + 1;
-                            const hRows = row2 - row1 + 1;
-                            const width = Math.round(wChars * COL_WIDTH);
-                            const height = Math.round(hRows * ROW_HEIGHT);
-                            const x = Math.round(col1 * COL_WIDTH + PADDING_LEFT);
-                            const y = Math.round(row1 * ROW_HEIGHT + PADDING_TOP);
-
-                            const id = generateId();
-                            newWidgets.push({
-                                id,
-                                type: 'container',
-                                x, y,
-                                props: {
-                                    width,
-                                    height,
-                                    name: winName,
-                                    style: { border: '1px solid #ccc', backgroundColor: '#f0f0f0' }
-                                }
-                            });
-                        }
-                    }
+                    parseEmbeddedWidgets(procedures[procName]);
                 }
             }
             if (deactivateMatch) {

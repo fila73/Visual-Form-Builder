@@ -833,7 +833,7 @@ const Layout = () => {
         const reader = new FileReader();
         reader.onload = (event) => {
             const text = decodeText(event.target.result, scaCharset);
-            parseSCAContent(text, setCanvasSize, setFormElements, (id) => setSelectedIds([id]), setFormEvents, setFormName);
+            parseSCAContent(text, setCanvasSize, setFormElements, (id) => setSelectedIds(id ? [id] : []), setFormEvents, setFormName);
         };
         reader.readAsArrayBuffer(file); e.target.value = '';
     };
@@ -844,7 +844,7 @@ const Layout = () => {
         const reader = new FileReader();
         reader.onload = (event) => {
             const text = decodeText(event.target.result, sprCharset);
-            parseSPRContent(text, setCanvasSize, setFormElements, (id) => setSelectedIds([id]), setFormEvents, setFormName);
+            parseSPRContent(text, setCanvasSize, setFormElements, (id) => setSelectedIds(id ? [id] : []), setFormEvents, setFormName);
         };
         reader.readAsArrayBuffer(file); e.target.value = '';
     };
