@@ -8,6 +8,8 @@ import CodeEditorModal from './modals/CodeEditorModal';
 import AddMethodModal from './modals/AddMethodModal';
 import { Monitor, FolderOpen, Save, Code, Settings, Grid as GridIcon, Zap, Plus, Trash2, Edit, FilePlus } from 'lucide-react';
 import { parseSCAContent } from '../utils/scaParser';
+import { parseSPRContent } from '../utils/sprParser';
+import { decodeText } from '../utils/charsetUtils';
 import { exportToPython } from '../utils/pythonExporter';
 import { save, ask } from '@tauri-apps/plugin-dialog';
 import { writeTextFile } from '@tauri-apps/plugin-fs';
@@ -199,9 +201,14 @@ const Layout = () => {
     const [activeModal, setActiveModal] = useState(null); // 'code', 'addMethod'
     const [editingCode, setEditingCode] = useState(null); // { type: 'event'|'method', id: string, name: string }
 
+    // Charset Settings
+    const [scaCharset, setScaCharset] = useState('windows-1250');
+    const [sprCharset, setSprCharset] = useState('cp895');
+
     const canvasRef = useRef(null);
     const fileInputRef = useRef(null);
     const fileInputScaRef = useRef(null);
+    const fileInputSprRef = useRef(null);
 
     useEffect(() => {
         const handleMouseMove = (e) => {
@@ -820,8 +827,22 @@ const Layout = () => {
         const file = e.target.files[0];
         if (!file) return;
         const reader = new FileReader();
-        reader.onload = (event) => parseSCAContent(event.target.result, setCanvasSize, setFormElements, (id) => setSelectedIds([id]), setFormEvents, setFormName);
-        reader.readAsText(file); e.target.value = '';
+        reader.onload = (event) => {
+            const text = decodeText(event.target.result, scaCharset);
+            parseSCAContent(text, setCanvasSize, setFormElements, (id) => setSelectedIds([id]), setFormEvents, setFormName);
+        };
+        reader.readAsArrayBuffer(file); e.target.value = '';
+    };
+
+    const handleImportSPR = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            const text = decodeText(event.target.result, sprCharset);
+            parseSPRContent(text, setCanvasSize, setFormElements, (id) => setSelectedIds([id]), setFormEvents, setFormName);
+        };
+        reader.readAsArrayBuffer(file); e.target.value = '';
     };
 
     const handleExportToPython = async () => {
@@ -1075,6 +1096,7 @@ const Layout = () => {
         <div className="flex flex-col h-screen w-screen overflow-hidden" onContextMenu={(e) => e.preventDefault()}>
             <input type="file" ref={fileInputRef} className="hidden" accept=".json" onChange={handleLoadProject} />
             <input type="file" ref={fileInputScaRef} className="hidden" accept=".sca,.txt" onChange={handleImportSCA} />
+            <input type="file" ref={fileInputSprRef} className="hidden" accept=".spr" onChange={handleImportSPR} />
             <input type="file" ref={imageInputRef} className="hidden" accept="image/*" onChange={handleImageSelect} />
 
             {/* Modals */}
@@ -1113,7 +1135,11 @@ const Layout = () => {
                     </button>
                     <button onClick={() => fileInputScaRef.current.click()} className="flex items-center space-x-1 px-3 py-1 bg-purple-600 hover:bg-purple-700 rounded text-sm transition-colors">
                         <FolderOpen size={14} />
-                        <span>Import VFP</span>
+                        <span>Import SCA</span>
+                    </button>
+                    <button onClick={() => fileInputSprRef.current.click()} className="flex items-center space-x-1 px-3 py-1 bg-teal-600 hover:bg-teal-700 rounded text-sm transition-colors">
+                        <FolderOpen size={14} />
+                        <span>Import SPR</span>
                     </button>
                     <button onClick={handleExportToPython} className="flex items-center space-x-1 px-3 py-1 bg-green-600 hover:bg-green-700 rounded text-sm transition-colors">
                         <Code size={14} />
@@ -1158,6 +1184,21 @@ const Layout = () => {
                                 max="100"
                             />
                             <span className="text-sm text-gray-500">px</span>
+                        </div>
+                        <div className="h-6 w-px bg-gray-300 mx-2"></div>
+                        <div className="flex items-center space-x-2">
+                            <span className="text-sm text-gray-700">SCA Kódování:</span>
+                            <select value={scaCharset} onChange={(e) => setScaCharset(e.target.value)} className="border border-gray-300 rounded px-2 py-1 text-sm">
+                                <option value="windows-1250">Windows-1250</option>
+                                <option value="utf-8">UTF-8</option>
+                            </select>
+                        </div>
+                        <div className="flex items-center space-x-2 ml-4">
+                            <span className="text-sm text-gray-700">SPR Kódování:</span>
+                            <select value={sprCharset} onChange={(e) => setSprCharset(e.target.value)} className="border border-gray-300 rounded px-2 py-1 text-sm">
+                                <option value="ibm852">Latin 2 (CP852)</option>
+                                <option value="cp895">Kamenických (CP895)</option>
+                            </select>
                         </div>
                     </div>
                 )
