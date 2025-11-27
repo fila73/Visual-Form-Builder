@@ -308,8 +308,8 @@ export const parseSPRContent = (text, setCanvasSize, setWidgets, setSelectedId, 
                     const widget = {
                         id,
                         type: type === 'radio' ? 'radio' : 'button', // Group implies buttons or radios
-                        x: startX + (groupOrientation === 'H' ? idx * (Math.round(w * COL_WIDTH) + 10) : 0),
-                        y: startY + (groupOrientation === 'V' ? idx * (Math.round(h * ROW_HEIGHT) + 5) : 0),
+                        x: startX + (groupOrientation === 'H' ? idx * (Math.round(w * COL_WIDTH) + 0) : 0), // +0 rozestup mezi tlacitky vertikálně
+                        y: startY + (groupOrientation === 'V' ? idx * (Math.round(h * ROW_HEIGHT) + 0) : 0), // +0 rozestup mezi tlacitky horizontálně
                         props: {
                             text: opt,
                             width: Math.round(w * COL_WIDTH),
