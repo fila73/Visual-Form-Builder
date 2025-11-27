@@ -22,6 +22,8 @@ const Layout = () => {
     const [activeTool, setActiveTool] = useState(null); // 'Button', 'Label', etc.
     const [isToolLocked, setIsToolLocked] = useState(false);
     const [drawingRect, setDrawingRect] = useState(null); // { startX, startY, currentX, currentY }
+    const [scaCharset, setScaCharset] = useState('windows-1250');
+    const [sprCharset, setSprCharset] = useState('cp895');
 
     // --- CLIPBOARD OPERATIONS ---
     const copyToClipboard = async () => {
@@ -202,9 +204,7 @@ const Layout = () => {
     const [activeModal, setActiveModal] = useState(null); // 'code', 'addMethod'
     const [editingCode, setEditingCode] = useState(null); // { type: 'event'|'method', id: string, name: string }
 
-    // Charset Settings
-    const [scaCharset, setScaCharset] = useState('windows-1250');
-    const [sprCharset, setSprCharset] = useState('cp895');
+
 
     const canvasRef = useRef(null);
     const fileInputRef = useRef(null);
@@ -1183,11 +1183,43 @@ const Layout = () => {
                                 type="number"
                                 value={gridSize}
                                 onChange={(e) => setGridSize(Math.max(5, parseInt(e.target.value) || 10))}
-                                className="w-16 border border-gray-300 rounded px-2 py-1 text-sm"
+                                className="w-16 border border-gray-300 rounded px-2 py-1 text-sm bg-white text-gray-900"
                                 min="5"
                                 max="100"
                             />
                             <span className="text-sm text-gray-500">px</span>
+                        </div>
+                        <div className="h-6 w-px bg-gray-300 mx-2"></div>
+                        <div className="flex items-center space-x-2">
+                            <span className="text-sm font-medium text-gray-700">SCA:</span>
+                            <select
+                                value={scaCharset}
+                                onChange={(e) => setScaCharset(e.target.value)}
+                                className="border border-gray-300 rounded px-2 py-1 text-sm bg-white text-gray-900 focus:outline-none focus:border-blue-500"
+                            >
+                                <option value="windows-1250">CP1250 (Win-1250)</option>
+                                <option value="ibm852">CP852 (Latin 2)</option>
+                                <option value="ibm437">CP437 (OEM US)</option>
+                                <option value="ibm850">CP850 (Latin 1)</option>
+                                <option value="utf-8">UTF-8</option>
+                                <option value="windows-1252">System Default</option>
+                            </select>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                            <span className="text-sm font-medium text-gray-700">SPR:</span>
+                            <select
+                                value={sprCharset}
+                                onChange={(e) => setSprCharset(e.target.value)}
+                                className="border border-gray-300 rounded px-2 py-1 text-sm bg-white text-gray-900 focus:outline-none focus:border-blue-500"
+                            >
+                                <option value="cp895">CP895 (Kamenický)</option>
+                                <option value="ibm852">CP852 (Latin 2)</option>
+                                <option value="windows-1250">CP1250 (Win-1250)</option>
+                                <option value="ibm437">CP437 (OEM US)</option>
+                                <option value="ibm850">CP850 (Latin 1)</option>
+                                <option value="utf-8">UTF-8</option>
+                                <option value="windows-1252">System Default</option>
+                            </select>
                         </div>
                     </div>
                 )
