@@ -18,6 +18,7 @@ dist-ssr
 .idea
 spr/*
 sca/*
+outside/*
 .DS_Store
 *.suo
 *.ntvs*

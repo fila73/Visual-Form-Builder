@@ -1,4 +1,4 @@
-import { componentRegistry } from '../data/componentRegistry';
+import { componentRegistry } from '../data/componentRegistry.js';
 
 export const parseSPRContent = (text, setCanvasSize, setWidgets, setSelectedId, setFormEvents, setFormName) => {
     const lines = text.split('\n');
@@ -250,9 +250,17 @@ export const parseSPRContent = (text, setCanvasSize, setWidgets, setSelectedId, 
                         id,
                         type: type === 'radio' ? 'radio' : 'button', // Group implies buttons or radios
                         x: startX + (groupOrientation === 'H' ? idx * (Math.round(w * COL_WIDTH) + 10) : 0),
-                        // We could try to wrap the code in a check, e.g., "m.varName = idx + 1"
-                        // But for now, let's just attach the full code.
-                        // Ideally, we should inject: "this.value = idx + 1; " + procCode
+                        y: startY + (groupOrientation === 'V' ? idx * (Math.round(h * ROW_HEIGHT) + 5) : 0),
+                        props: {
+                            text: opt,
+                            width: Math.round(w * COL_WIDTH),
+                            height: Math.round(h * ROW_HEIGHT),
+                            name: `${type === 'radio' ? 'Option' : 'Command'}_${id.substr(4)}`,
+                            style: { fontSize: '14px', color: '#000000' }
+                        }
+                    };
+
+                    if (validProc) {
                         finalFormEvents[`${id}_Click`] = procedures[validProc.toUpperCase()];
                     }
 
