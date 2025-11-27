@@ -87,7 +87,66 @@ export const parseSPRContent = (text, setCanvasSize, setWidgets, setSelectedId, 
 
         // Check for Window definition
         const winMatch = cleanLine.match(windowPattern);
-        if (winMatch) formName = winMatch[1];
+        if (winMatch) {
+            formName = winMatch[1];
+
+            const SROWS = 25;
+            const SCOLS = 80;
+
+            const evalExpr = (expr) => {
+                try {
+                    if (!expr) return 0;
+                    // Replace SROWS() and SCOLS() with constants
+                    let e = expr.toUpperCase().replace(/SROWS\(\)/g, SROWS).replace(/SCOLS\(\)/g, SCOLS);
+                    // Replace INT(...) with Math.floor(...)
+                    e = e.replace(/INT\(/g, 'Math.floor(');
+                    // Safe eval
+                    return new Function(`return ${e}`)();
+                } catch (err) {
+                    console.error('Error evaluating expression:', expr, err);
+                    return 0;
+                }
+            };
+
+            // Robust parsing using substring
+            const upperLine = cleanLine.toUpperCase();
+            const fromIdx = upperLine.indexOf(' FROM ');
+            const toIdx = upperLine.indexOf(' TO ');
+
+            if (fromIdx !== -1 && toIdx !== -1) {
+                // Better: Regex for the whole block using the known structure
+                const dimMatch = cleanLine.match(/FROM\s+(.+?)\s+TO\s+(.+?)(?:\s+(?:FLOAT|NOCLOSE|SHADOW|TITLE|COLOR|SYSTEM|GROW|MINIMIZE|CLOSE|ZOOM|DOUBLE|PANEL|NONE)|$)/i);
+
+                if (dimMatch) {
+                    const fromPart = dimMatch[1];
+                    const toPart = dimMatch[2];
+
+                    // Helper to split coordinates "r, c"
+                    const splitCoords = (str) => {
+                        const commaIdx = str.indexOf(',');
+                        if (commaIdx === -1) return [0, 0];
+                        return [str.substring(0, commaIdx), str.substring(commaIdx + 1)];
+                    };
+
+                    const [r1s, c1s] = splitCoords(fromPart);
+                    const [r2s, c2s] = splitCoords(toPart);
+
+                    const row1 = evalExpr(r1s);
+                    const col1 = evalExpr(c1s);
+                    const row2 = evalExpr(r2s);
+                    const col2 = evalExpr(c2s);
+
+                    if (!isNaN(row1) && !isNaN(col1) && !isNaN(row2) && !isNaN(col2)) {
+                        // FoxPro coordinates are inclusive, so add 1 to width/height in chars/rows
+                        const wChars = col2 - col1 + 1;
+                        const hRows = row2 - row1 + 1;
+
+                        formWidth = Math.round(wChars * COL_WIDTH);
+                        formHeight = Math.round(hRows * ROW_HEIGHT);
+                    }
+                }
+            }
+        }
 
         let match;
 
