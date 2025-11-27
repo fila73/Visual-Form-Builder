@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Sidebar from './Sidebar';
+import Toolbar from './Toolbar';
 import { componentRegistry } from '../data/componentRegistry';
 import Canvas from './Canvas';
 import FormElement from './FormElement';
@@ -1187,232 +1188,238 @@ const Layout = () => {
                                 max="100"
                             />
                             <span className="text-sm text-gray-500">px</span>
-                            activeTool={activeTool}
-                            isToolLocked={isToolLocked}
-                            onToolSelect={handleToolSelect}
-                            onToolLock={handleToolLock}
-                />
-                            <Canvas
-                                elements={formElements}
-                                gridSize={gridSize}
-                                showGrid={showGrid}
-                                canvasRef={canvasRef}
-                                selectedIds={selectedIds}
-                                onWidgetClick={handleWidgetClick}
-                                onCanvasClick={handleCanvasClick}
-                                onResizeMouseDown={handleInteractionStart}
-                                canvasSize={canvasSize}
-                                onCanvasMouseDown={handleCanvasMouseDown}
-                                selectionBox={selectionBox}
-                                drawingRect={drawingRect}
-                                activeTool={activeTool}
-                                formName={formName}
-                            />
-                            <aside className="w-80 bg-white border-l border-gray-200 flex flex-col z-20 overflow-hidden">
-                                <div className="p-4 border-b border-gray-200 font-bold text-gray-700 bg-gray-50">
-                                    VLASTNOSTI
-                                </div>
-                                <div className="flex-1 overflow-y-auto p-4">
-                                    {selectedElement ? (
-                                        <>
-                                            <div className="text-center mb-6">
-                                                <div className="font-bold text-lg text-gray-800">{selectedElement.type}</div>
-                                                <div className="text-xs text-gray-500">{selectedElement.id}</div>
-                                            </div>
-
-                                            <div className="mb-6">
-                                                <div className="text-xs font-bold text-gray-500 uppercase mb-2">Rozměry a Pozice</div>
-                                                <div className="grid grid-cols-2 gap-2">
-                                                    <PropInput label="X" value={selectedElement.x} onChange={(v) => {
-                                                        const val = parseInt(v);
-                                                        if (!isNaN(val)) {
-                                                            setFormElements(els => {
-                                                                const updated = els.map(el => selectedIds.includes(el.id) ? { ...el, x: val } : el);
-                                                                return reparentElements(updated, selectedIds);
-                                                            });
-                                                        }
-                                                    }} />
-                                                    <PropInput label="Y" value={selectedElement.y} onChange={(v) => {
-                                                        const val = parseInt(v);
-                                                        if (!isNaN(val)) {
-                                                            setFormElements(els => {
-                                                                const updated = els.map(el => selectedIds.includes(el.id) ? { ...el, y: val } : el);
-                                                                return reparentElements(updated, selectedIds);
-                                                            });
-                                                        }
-                                                    }} />
-                                                    <PropInput label="Šířka" value={selectedElement.props.width} onChange={(v) => updateWidgetProp('width', parseInt(v) || 0)} />
-                                                    <PropInput label="Výška" value={selectedElement.props.height} onChange={(v) => updateWidgetProp('height', parseInt(v) || 0)} />
-                                                </div>
-                                            </div>
-
-                                            <div className="mb-6">
-                                                <div className="text-xs font-bold text-gray-500 uppercase mb-2">Vlastnosti</div>
-                                                <PropInput label="Name" value={selectedElement.props.name || ''} onChange={(v) => updateWidgetProp('name', v)} />
-                                                {Object.entries({ ...selectedElement.props }).map(([key, value]) => {
-                                                    if (['width', 'height', 'style', 'name', 'visible', 'enabled', 'src', 'stretch', 'repeat'].includes(key)) return null; // Skip handled props
-                                                    return (
-                                                        <PropInput
-                                                            key={key}
-                                                            label={key}
-                                                            value={value}
-                                                            onChange={(v) => updateWidgetProp(key, v)}
-                                                        />
-                                                    );
-                                                })}
-
-                                                {selectedElement.type === 'image' && (
-                                                    <>
-                                                        <div className="mb-2">
-                                                            <label className="text-[10px] font-bold text-gray-500 uppercase w-full block mb-1">Src</label>
-                                                            <div className="flex gap-1">
-                                                                <input
-                                                                    type="text"
-                                                                    value={selectedElement.props.src || ''}
-                                                                    onChange={(e) => updateWidgetProp('src', e.target.value)}
-                                                                    className="flex-1 border border-gray-300 rounded px-2 py-1 text-sm focus:border-blue-500 focus:outline-none"
-                                                                />
-                                                                <button
-                                                                    onClick={() => imageInputRef.current.click()}
-                                                                    className="px-3 py-1 bg-gray-100 border border-gray-300 hover:bg-gray-200 rounded text-xs font-bold text-gray-600"
-                                                                    title="Vybrat soubor"
-                                                                >
-                                                                    ...
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                        <PropInput label="Stretch" value={selectedElement.props.stretch || false} onChange={(v) => updateWidgetProp('stretch', v)} />
-                                                        <PropInput label="Repeat" value={selectedElement.props.repeat || false} onChange={(v) => updateWidgetProp('repeat', v)} />
-                                                    </>
-                                                )}
-
-                                                <PropInput label="Visible" value={selectedElement.props.visible !== false} onChange={(v) => updateWidgetProp('visible', v === 'true' || v === true)} />
-                                                <PropInput label="Enabled" value={selectedElement.props.enabled !== false} onChange={(v) => updateWidgetProp('enabled', v === 'true' || v === true)} />
-                                            </div>
-
-                                            <div className="mb-6">
-                                                <div className="text-xs font-bold text-gray-500 uppercase mb-2">Styl</div>
-                                                <PropInput
-                                                    label="Font Size"
-                                                    value={selectedElement.props.style?.fontSize || '14px'}
-                                                    onChange={(v) => updateWidgetStyle('fontSize', v)}
-                                                />
-                                                <div className="mb-2">
-                                                    <label className="text-[10px] font-bold text-gray-500 uppercase w-full block mb-1">Color</label>
-                                                    <div className="flex gap-1">
-                                                        <input
-                                                            type="color"
-                                                            value={selectedElement.props.style?.color || '#000000'}
-                                                            onChange={(e) => updateWidgetStyle('color', e.target.value)}
-                                                            className="w-8 h-8 p-0 border-0 rounded cursor-pointer"
-                                                        />
-                                                        <input
-                                                            type="text"
-                                                            value={selectedElement.props.style?.color || '#000000'}
-                                                            onChange={(e) => updateWidgetStyle('color', e.target.value)}
-                                                            className="flex-1 border border-gray-300 rounded px-2 py-1 text-sm focus:border-blue-500 focus:outline-none"
-                                                        />
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            {!selectedElement.isMulti && (
-                                                <div>
-                                                    <div className="text-xs font-bold text-gray-500 uppercase mb-2">Události</div>
-                                                    <div className="space-y-1">
-                                                        {(() => {
-                                                            const standardEvents = ['Click', 'RightClick', 'GotFocus', 'LostFocus'];
-                                                            // Find all events for this widget in formEvents
-                                                            const widgetEvents = Object.keys(formEvents)
-                                                                .filter(key => key.startsWith(`${selectedElement.id}_`))
-                                                                .map(key => key.replace(`${selectedElement.id}_`, ''));
-
-                                                            // Combine and deduplicate
-                                                            const allEvents = [...new Set([...standardEvents, ...widgetEvents])];
-
-                                                            return allEvents.map(evt => (
-                                                                <button
-                                                                    key={evt}
-                                                                    onClick={() => handleEditEvent(evt)}
-                                                                    className={`w-full flex items-center justify-between px-2 py-1 text-sm border rounded hover:bg-gray-50 ${formEvents[`${selectedElement.id}_${evt}`] ? 'border-blue-300 bg-blue-50 text-blue-700' : 'border-gray-300 text-gray-600'}`}
-                                                                >
-                                                                    <div className="flex items-center gap-2">
-                                                                        <Zap size={12} className={formEvents[`${selectedElement.id}_${evt}`] ? 'text-blue-500' : 'text-gray-400'} />
-                                                                        <span>{evt}</span>
-                                                                    </div>
-                                                                    {formEvents[`${selectedElement.id}_${evt}`] && <span className="text-[10px] font-bold">EDIT</span>}
-                                                                </button>
-                                                            ));
-                                                        })()}
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </>
-                                    ) : (
-                                        <>
-                                            <div className="text-center mt-10">
-                                                <div className="text-gray-300 mb-2">
-                                                    <Monitor size={48} className="mx-auto" />
-                                                </div>
-                                                <div className="font-medium text-gray-600">Formulář</div>
-                                            </div>
-
-                                            <div className="mt-6 mb-6">
-                                                <div className="text-xs font-bold text-gray-500 uppercase mb-2">Nastavení Formuláře</div>
-                                                <div className="mb-2">
-                                                    <PropInput label="Name" value={formName} onChange={setFormName} />
-                                                </div>
-                                                <div className="grid grid-cols-2 gap-2 mb-4">
-                                                    <PropInput label="Šířka" value={canvasSize.width} onChange={(v) => setCanvasSize({ ...canvasSize, width: parseInt(v) || 800 })} />
-                                                    <PropInput label="Výška" value={canvasSize.height} onChange={(v) => setCanvasSize({ ...canvasSize, height: parseInt(v) || 600 })} />
-                                                </div>
-                                            </div>
-
-                                            <div className="mb-6">
-                                                <div className="text-xs font-bold text-gray-500 uppercase mb-2">Události Formuláře</div>
-                                                <div className="space-y-1">
-                                                    {['Load', 'Unload', 'Init', 'Destroy', 'Click'].map(evt => (
-                                                        <button
-                                                            key={evt}
-                                                            onClick={() => handleEditEvent(evt)}
-                                                            className={`w-full flex items-center justify-between px-2 py-1 text-sm border rounded hover:bg-gray-50 ${formEvents[`Form1_${evt}`] ? 'border-blue-300 bg-blue-50 text-blue-700' : 'border-gray-300 text-gray-600'}`}
-                                                        >
-                                                            <div className="flex items-center gap-2">
-                                                                <Zap size={12} className={formEvents[`Form1_${evt}`] ? 'text-blue-500' : 'text-gray-400'} />
-                                                                <span>{evt}</span>
-                                                            </div>
-                                                            {formEvents[`Form1_${evt}`] && <span className="text-[10px] font-bold">EDIT</span>}
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            </div>
-
-                                            <div>
-                                                <div className="flex items-center justify-between mb-2">
-                                                    <div className="text-xs font-bold text-gray-500 uppercase">Vlastní Metody</div>
-                                                    <button onClick={() => setActiveModal('addMethod')} className="p-1 hover:bg-gray-200 rounded text-blue-600">
-                                                        <Plus size={14} />
-                                                    </button>
-                                                </div>
-                                                <div className="space-y-1">
-                                                    {customMethods.length === 0 && <div className="text-xs text-gray-400 italic text-center py-2">Žádné metody</div>}
-                                                    {customMethods.map(m => (
-                                                        <div key={m.name} className="flex items-center justify-between px-2 py-1 text-sm border border-gray-300 rounded bg-white">
-                                                            <span className="font-mono text-xs">{m.name}({m.args})</span>
-                                                            <div className="flex items-center gap-1">
-                                                                <button onClick={() => handleEditMethod(m)} className="p-1 hover:bg-gray-100 rounded text-blue-600"><Edit size={12} /></button>
-                                                                <button onClick={() => handleDeleteMethod(m.name)} className="p-1 hover:bg-gray-100 rounded text-red-600"><Trash2 size={12} /></button>
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        </>
-                                    )}
-                                </div>
-                            </aside>
                         </div>
                     </div>
+                )
+            }
+
+            <div className="flex-1 flex relative overflow-hidden">
+                <Toolbar
+                    activeTool={activeTool}
+                    isToolLocked={isToolLocked}
+                    onToolSelect={handleToolSelect}
+                    onToolLock={handleToolLock}
+                />
+                <Canvas
+                    elements={formElements}
+                    gridSize={gridSize}
+                    showGrid={showGrid}
+                    canvasRef={canvasRef}
+                    selectedIds={selectedIds}
+                    onWidgetClick={handleWidgetClick}
+                    onCanvasClick={handleCanvasClick}
+                    onResizeMouseDown={handleInteractionStart}
+                    canvasSize={canvasSize}
+                    onCanvasMouseDown={handleCanvasMouseDown}
+                    selectionBox={selectionBox}
+                    drawingRect={drawingRect}
+                    activeTool={activeTool}
+                    formName={formName}
+                />
+                <aside className="w-80 bg-white border-l border-gray-200 flex flex-col z-20 overflow-hidden">
+                    <div className="p-4 border-b border-gray-200 font-bold text-gray-700 bg-gray-50">
+                        VLASTNOSTI
+                    </div>
+                    <div className="flex-1 overflow-y-auto p-4">
+                        {selectedElement ? (
+                            <>
+                                <div className="text-center mb-6">
+                                    <div className="font-bold text-lg text-gray-800">{selectedElement.type}</div>
+                                    <div className="text-xs text-gray-500">{selectedElement.id}</div>
+                                </div>
+
+                                <div className="mb-6">
+                                    <div className="text-xs font-bold text-gray-500 uppercase mb-2">Rozměry a Pozice</div>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <PropInput label="X" value={selectedElement.x} onChange={(v) => {
+                                            const val = parseInt(v);
+                                            if (!isNaN(val)) {
+                                                setFormElements(els => {
+                                                    const updated = els.map(el => selectedIds.includes(el.id) ? { ...el, x: val } : el);
+                                                    return reparentElements(updated, selectedIds);
+                                                });
+                                            }
+                                        }} />
+                                        <PropInput label="Y" value={selectedElement.y} onChange={(v) => {
+                                            const val = parseInt(v);
+                                            if (!isNaN(val)) {
+                                                setFormElements(els => {
+                                                    const updated = els.map(el => selectedIds.includes(el.id) ? { ...el, y: val } : el);
+                                                    return reparentElements(updated, selectedIds);
+                                                });
+                                            }
+                                        }} />
+                                        <PropInput label="Šířka" value={selectedElement.props.width} onChange={(v) => updateWidgetProp('width', parseInt(v) || 0)} />
+                                        <PropInput label="Výška" value={selectedElement.props.height} onChange={(v) => updateWidgetProp('height', parseInt(v) || 0)} />
+                                    </div>
+                                </div>
+
+                                <div className="mb-6">
+                                    <div className="text-xs font-bold text-gray-500 uppercase mb-2">Vlastnosti</div>
+                                    <PropInput label="Name" value={selectedElement.props.name || ''} onChange={(v) => updateWidgetProp('name', v)} />
+                                    {Object.entries({ ...selectedElement.props }).map(([key, value]) => {
+                                        if (['width', 'height', 'style', 'name', 'visible', 'enabled', 'src', 'stretch', 'repeat'].includes(key)) return null; // Skip handled props
+                                        return (
+                                            <PropInput
+                                                key={key}
+                                                label={key}
+                                                value={value}
+                                                onChange={(v) => updateWidgetProp(key, v)}
+                                            />
+                                        );
+                                    })}
+
+                                    {selectedElement.type === 'image' && (
+                                        <>
+                                            <div className="mb-2">
+                                                <label className="text-[10px] font-bold text-gray-500 uppercase w-full block mb-1">Src</label>
+                                                <div className="flex gap-1">
+                                                    <input
+                                                        type="text"
+                                                        value={selectedElement.props.src || ''}
+                                                        onChange={(e) => updateWidgetProp('src', e.target.value)}
+                                                        className="flex-1 border border-gray-300 rounded px-2 py-1 text-sm focus:border-blue-500 focus:outline-none"
+                                                    />
+                                                    <button
+                                                        onClick={() => imageInputRef.current.click()}
+                                                        className="px-3 py-1 bg-gray-100 border border-gray-300 hover:bg-gray-200 rounded text-xs font-bold text-gray-600"
+                                                        title="Vybrat soubor"
+                                                    >
+                                                        ...
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <PropInput label="Stretch" value={selectedElement.props.stretch || false} onChange={(v) => updateWidgetProp('stretch', v)} />
+                                            <PropInput label="Repeat" value={selectedElement.props.repeat || false} onChange={(v) => updateWidgetProp('repeat', v)} />
+                                        </>
+                                    )}
+
+                                    <PropInput label="Visible" value={selectedElement.props.visible !== false} onChange={(v) => updateWidgetProp('visible', v === 'true' || v === true)} />
+                                    <PropInput label="Enabled" value={selectedElement.props.enabled !== false} onChange={(v) => updateWidgetProp('enabled', v === 'true' || v === true)} />
+                                </div>
+
+                                <div className="mb-6">
+                                    <div className="text-xs font-bold text-gray-500 uppercase mb-2">Styl</div>
+                                    <PropInput
+                                        label="Font Size"
+                                        value={selectedElement.props.style?.fontSize || '14px'}
+                                        onChange={(v) => updateWidgetStyle('fontSize', v)}
+                                    />
+                                    <div className="mb-2">
+                                        <label className="text-[10px] font-bold text-gray-500 uppercase w-full block mb-1">Color</label>
+                                        <div className="flex gap-1">
+                                            <input
+                                                type="color"
+                                                value={selectedElement.props.style?.color || '#000000'}
+                                                onChange={(e) => updateWidgetStyle('color', e.target.value)}
+                                                className="w-8 h-8 p-0 border-0 rounded cursor-pointer"
+                                            />
+                                            <input
+                                                type="text"
+                                                value={selectedElement.props.style?.color || '#000000'}
+                                                onChange={(e) => updateWidgetStyle('color', e.target.value)}
+                                                className="flex-1 border border-gray-300 rounded px-2 py-1 text-sm focus:border-blue-500 focus:outline-none"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {!selectedElement.isMulti && (
+                                    <div>
+                                        <div className="text-xs font-bold text-gray-500 uppercase mb-2">Události</div>
+                                        <div className="space-y-1">
+                                            {(() => {
+                                                const standardEvents = ['Click', 'RightClick', 'GotFocus', 'LostFocus'];
+                                                // Find all events for this widget in formEvents
+                                                const widgetEvents = Object.keys(formEvents)
+                                                    .filter(key => key.startsWith(`${selectedElement.id}_`))
+                                                    .map(key => key.replace(`${selectedElement.id}_`, ''));
+
+                                                // Combine and deduplicate
+                                                const allEvents = [...new Set([...standardEvents, ...widgetEvents])];
+
+                                                return allEvents.map(evt => (
+                                                    <button
+                                                        key={evt}
+                                                        onClick={() => handleEditEvent(evt)}
+                                                        className={`w-full flex items-center justify-between px-2 py-1 text-sm border rounded hover:bg-gray-50 ${formEvents[`${selectedElement.id}_${evt}`] ? 'border-blue-300 bg-blue-50 text-blue-700' : 'border-gray-300 text-gray-600'}`}
+                                                    >
+                                                        <div className="flex items-center gap-2">
+                                                            <Zap size={12} className={formEvents[`${selectedElement.id}_${evt}`] ? 'text-blue-500' : 'text-gray-400'} />
+                                                            <span>{evt}</span>
+                                                        </div>
+                                                        {formEvents[`${selectedElement.id}_${evt}`] && <span className="text-[10px] font-bold">EDIT</span>}
+                                                    </button>
+                                                ));
+                                            })()}
+                                        </div>
+                                    </div>
+                                )}
+                            </>
+                        ) : (
+                            <>
+                                <div className="text-center mt-10">
+                                    <div className="text-gray-300 mb-2">
+                                        <Monitor size={48} className="mx-auto" />
+                                    </div>
+                                    <div className="font-medium text-gray-600">Formulář</div>
+                                </div>
+
+                                <div className="mt-6 mb-6">
+                                    <div className="text-xs font-bold text-gray-500 uppercase mb-2">Nastavení Formuláře</div>
+                                    <div className="mb-2">
+                                        <PropInput label="Name" value={formName} onChange={setFormName} />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2 mb-4">
+                                        <PropInput label="Šířka" value={canvasSize.width} onChange={(v) => setCanvasSize({ ...canvasSize, width: parseInt(v) || 800 })} />
+                                        <PropInput label="Výška" value={canvasSize.height} onChange={(v) => setCanvasSize({ ...canvasSize, height: parseInt(v) || 600 })} />
+                                    </div>
+                                </div>
+
+                                <div className="mb-6">
+                                    <div className="text-xs font-bold text-gray-500 uppercase mb-2">Události Formuláře</div>
+                                    <div className="space-y-1">
+                                        {['Load', 'Unload', 'Init', 'Destroy', 'Click'].map(evt => (
+                                            <button
+                                                key={evt}
+                                                onClick={() => handleEditEvent(evt)}
+                                                className={`w-full flex items-center justify-between px-2 py-1 text-sm border rounded hover:bg-gray-50 ${formEvents[`Form1_${evt}`] ? 'border-blue-300 bg-blue-50 text-blue-700' : 'border-gray-300 text-gray-600'}`}
+                                            >
+                                                <div className="flex items-center gap-2">
+                                                    <Zap size={12} className={formEvents[`Form1_${evt}`] ? 'text-blue-500' : 'text-gray-400'} />
+                                                    <span>{evt}</span>
+                                                </div>
+                                                {formEvents[`Form1_${evt}`] && <span className="text-[10px] font-bold">EDIT</span>}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <div className="flex items-center justify-between mb-2">
+                                        <div className="text-xs font-bold text-gray-500 uppercase">Vlastní Metody</div>
+                                        <button onClick={() => setActiveModal('addMethod')} className="p-1 hover:bg-gray-200 rounded text-blue-600">
+                                            <Plus size={14} />
+                                        </button>
+                                    </div>
+                                    <div className="space-y-1">
+                                        {customMethods.length === 0 && <div className="text-xs text-gray-400 italic text-center py-2">Žádné metody</div>}
+                                        {customMethods.map(m => (
+                                            <div key={m.name} className="flex items-center justify-between px-2 py-1 text-sm border border-gray-300 rounded bg-white">
+                                                <span className="font-mono text-xs">{m.name}({m.args})</span>
+                                                <div className="flex items-center gap-1">
+                                                    <button onClick={() => handleEditMethod(m)} className="p-1 hover:bg-gray-100 rounded text-blue-600"><Edit size={12} /></button>
+                                                    <button onClick={() => handleDeleteMethod(m.name)} className="p-1 hover:bg-gray-100 rounded text-red-600"><Trash2 size={12} /></button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </>
+                        )}
+                    </div>
+                </aside>
+            </div>
         </div>
     );
 };
