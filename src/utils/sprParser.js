@@ -393,7 +393,11 @@ export const parseSPRContent = (text, setCanvasSize, setWidgets, setSelectedId, 
                             width: Math.round(w * COL_WIDTH),
                             height: Math.round(h * ROW_HEIGHT),
                             name: `${type === 'radio' ? 'Option' : 'Command'}_${id.substr(4)}`,
-                            style: { fontSize: '14px', color: '#000000' }
+                            style: {
+                                fontSize: '14px',
+                                color: '#000000',
+                                backgroundColor: type === 'radio' ? undefined : '#f0f0f0'
+                            }
                         }
                     };
                     if (validProc) {
@@ -414,7 +418,12 @@ export const parseSPRContent = (text, setCanvasSize, setWidgets, setSelectedId, 
                         ...props,
                         width,
                         height,
-                        style: { fontSize: '14px', color: '#000000', ...props.style }
+                        style: {
+                            fontSize: '14px',
+                            color: '#000000',
+                            backgroundColor: type === 'button' ? '#f0f0f0' : undefined,
+                            ...props.style
+                        }
                     }
                 };
                 if (validProc && procedures[validProc.toUpperCase()]) {
