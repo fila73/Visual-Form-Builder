@@ -44,13 +44,13 @@ export const parseSPRContent = (text, setCanvasSize, setWidgets, setSelectedId, 
     // Helper to parse caption sequences
     const parseCaption = (caption) => {
         let text = caption || '';
-        let disabled = false;
+        let enabled = true;
         let hotkey = null;
         let isDefault = false;
         let isCancel = false;
 
         if (text.includes('\\\\')) {
-            disabled = true;
+            enabled = false;
             text = text.replace(/\\\\/g, '');
         }
         if (text.includes('\\!')) {
@@ -71,7 +71,7 @@ export const parseSPRContent = (text, setCanvasSize, setWidgets, setSelectedId, 
         // Cleanup other VFP sequences if any
         text = text.replace(/\\/g, '');
 
-        return { text, disabled, hotkey, isDefault, isCancel };
+        return { text, enabled, hotkey, isDefault, isCancel };
     };
 
     // --- PASS 1: Extract Procedures ---
@@ -141,6 +141,7 @@ export const parseSPRContent = (text, setCanvasSize, setWidgets, setSelectedId, 
                 };
 
                 const dimMatch = cleanLine.match(/FROM\s+(.+?)\s+TO\s+(.+?)(?:\s+(?:NOFLOAT\b|NOCLOSE\b|NOSHADOW\b|NOGROW\b|NOZOOM\b|NOMINIMIZE\b|FLOAT\b|SHADOW\b|TITLE\b|COLOR\b|SCHEME\b|SYSTEM\b|GROW\b|MINIMIZE\b|CLOSE\b|ZOOM\b|DOUBLE\b|PANEL\b|NONE\b|FONT\b|STYLE\b|ICON\b|MDI\b|HALFHEIGHT\b|FOOTER\b|FILL\b|FILE\b|IN\b|NAME\b)|$)/i);
+
                 if (dimMatch) {
                     const fromPart = dimMatch[1];
                     const toPart = dimMatch[2];
@@ -400,7 +401,7 @@ export const parseSPRContent = (text, setCanvasSize, setWidgets, setSelectedId, 
                     } else {
                         const parsed = parseCaption(rawCaptionPart);
                         props.text = parsed.text;
-                        if (parsed.disabled) props.disabled = true;
+                        if (!parsed.enabled) props.enabled = false;
                         if (parsed.hotkey) props.hotkey = parsed.hotkey;
                     }
                 }
@@ -415,7 +416,7 @@ export const parseSPRContent = (text, setCanvasSize, setWidgets, setSelectedId, 
                     } else {
                         const parsed = parseCaption(rawCaptionPart || 'Button');
                         props.text = parsed.text;
-                        if (parsed.disabled) props.disabled = true;
+                        if (!parsed.enabled) props.enabled = false;
                         if (parsed.hotkey) props.hotkey = parsed.hotkey;
                         if (parsed.isDefault) props.default = true;
                         if (parsed.isCancel) props.cancel = true;
@@ -455,7 +456,7 @@ export const parseSPRContent = (text, setCanvasSize, setWidgets, setSelectedId, 
                             }
                         }
                     };
-                    if (parsed.disabled) widget.props.disabled = true;
+                    if (!parsed.enabled) widget.props.enabled = false;
                     if (parsed.hotkey) widget.props.hotkey = parsed.hotkey;
                     if (parsed.isDefault) widget.props.default = true;
                     if (parsed.isCancel) widget.props.cancel = true;
