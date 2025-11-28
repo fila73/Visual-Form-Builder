@@ -107,7 +107,7 @@ export const parseSPRContent = (text, setCanvasSize, setWidgets, setSelectedId, 
                     }
                 };
 
-                const dimMatch = cleanLine.match(/FROM\s+(.+?)\s+TO\s+(.+?)(?:\s+(?:FLOAT|NOCLOSE|SHADOW|TITLE|COLOR|SYSTEM|GROW|MINIMIZE|CLOSE|ZOOM|DOUBLE|PANEL|NONE|FONT|STYLE|ICON|MDI|HALFHEIGHT|FOOTER|FILL|IN|NAME)|$)/i);
+                const dimMatch = cleanLine.match(/FROM\s+(.+?)\s+TO\s+(.+?)(?:\s+(?:FLOAT\b|NOCLOSE\b|SHADOW\b|TITLE\b|COLOR\b|SYSTEM\b|GROW\b|MINIMIZE\b|CLOSE\b|ZOOM\b|DOUBLE\b|PANEL\b|NONE\b|FONT\b|STYLE\b|ICON\b|MDI\b|HALFHEIGHT\b|FOOTER\b|FILL\b|IN\b|NAME\b|NOFLOAT\b)|$)/i);
 
                 if (dimMatch) {
                     const fromPart = dimMatch[1];
