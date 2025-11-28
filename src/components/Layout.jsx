@@ -7,6 +7,10 @@ import FormElement from './FormElement';
 import PropInput from './PropInput';
 import CodeEditorModal from './modals/CodeEditorModal';
 import AddMethodModal from './modals/AddMethodModal';
+import TopBar from './TopBar';
+import PropertiesPanel from './PropertiesPanel';
+import SettingsPanel from './SettingsPanel';
+import useKeyboardShortcuts from '../hooks/useKeyboardShortcuts';
 import { Monitor, FolderOpen, Save, Code, Settings, Grid as GridIcon, Zap, Plus, Trash2, Edit, FilePlus } from 'lucide-react';
 import { parseSCAContent } from '../utils/scaParser';
 import { parseSPRContent } from '../utils/sprParser';
@@ -989,120 +993,80 @@ const Layout = () => {
     const handleNewProjectRef = useRef(handleNewProject);
     handleNewProjectRef.current = handleNewProject;
 
-    useEffect(() => {
-        const handleKeyDown = (e) => {
-            if (activeModal) return;
-            // Clipboard Shortcuts
-            if (e.ctrlKey) {
-                if (e.key === 'n' || e.key === 'N') {
-                    e.preventDefault();
-                    handleNewProjectRef.current();
-                    return;
-                }
-                if (e.key === 'o' || e.key === 'O') {
-                    e.preventDefault();
-                    fileInputRef.current.click();
-                    return;
-                }
-                if (e.key === 's' || e.key === 'S') {
-                    e.preventDefault();
-                    saveProjectRef.current();
-                    return;
-                }
-                if (e.key === 'c' || e.key === 'C') {
-                    e.preventDefault();
-                    copyToClipboard();
-                    return;
-                }
-                if (e.key === 'v' || e.key === 'V') {
-                    e.preventDefault();
-                    pasteFromClipboard();
-                    return;
-                }
-                if (e.key === 'x' || e.key === 'X') {
-                    e.preventDefault();
-                    cutToClipboard();
-                    return;
-                }
+    const handleDelete = () => {
+        setFormElements(prev => prev.filter(el => !selectedIds.includes(el.id)));
+        setSelectedIds([]);
+    };
+
+    const handleSelectAll = () => {
+        setSelectedIds(formElements.map(el => el.id));
+    };
+
+    const handleMove = (key, step, isResize, isAlign) => {
+        if (isAlign && selectedIds.length > 1) {
+            // Alignment Logic
+            const selectedElements = formElements.filter(el => selectedIds.includes(el.id));
+            let targetValue;
+
+            if (key === 'ArrowLeft') {
+                targetValue = Math.min(...selectedElements.map(el => el.x));
+                setFormElements(prev => prev.map(el => selectedIds.includes(el.id) ? { ...el, x: targetValue } : el));
+            } else if (key === 'ArrowRight') {
+                const maxRight = Math.max(...selectedElements.map(el => el.x + (el.props.width || 0)));
+                setFormElements(prev => prev.map(el => selectedIds.includes(el.id) ? { ...el, x: maxRight - (el.props.width || 0) } : el));
+            } else if (key === 'ArrowUp') {
+                targetValue = Math.min(...selectedElements.map(el => el.y));
+                setFormElements(prev => prev.map(el => selectedIds.includes(el.id) ? { ...el, y: targetValue } : el));
+            } else if (key === 'ArrowDown') {
+                const maxBottom = Math.max(...selectedElements.map(el => el.y + (el.props.height || 0)));
+                setFormElements(prev => prev.map(el => selectedIds.includes(el.id) ? { ...el, y: maxBottom - (el.props.height || 0) } : el));
             }
+            return;
+        }
 
-            // Ctrl+A - Select All
-            if (e.ctrlKey && (e.code === 'KeyA' || e.key === 'a' || e.key === 'A')) {
-                const tagName = e.target.tagName;
-                if (tagName === 'INPUT' || tagName === 'TEXTAREA' || e.target.isContentEditable) {
-                    return;
-                }
-                e.preventDefault();
-                e.stopPropagation();
-                setSelectedIds(formElements.map(el => el.id));
-                return;
-            }
+        setFormElements(prev => {
+            return prev.map(el => {
+                if (selectedIds.includes(el.id)) {
+                    let { x, y, props } = el;
+                    let { width, height } = props;
 
-            if (selectedIds.length === 0) return;
-            if (['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return;
-
-            const step = e.ctrlKey ? gridSize : 1;
-            const isResize = e.shiftKey;
-            const isAlign = e.altKey;
-
-            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
-                e.preventDefault();
-
-                if (isAlign && selectedIds.length > 1) {
-                    // Alignment Logic
-                    const selectedElements = formElements.filter(el => selectedIds.includes(el.id));
-                    let targetValue;
-
-                    if (e.key === 'ArrowLeft') {
-                        targetValue = Math.min(...selectedElements.map(el => el.x));
-                        setFormElements(prev => prev.map(el => selectedIds.includes(el.id) ? { ...el, x: targetValue } : el));
-                    } else if (e.key === 'ArrowRight') {
-                        const maxRight = Math.max(...selectedElements.map(el => el.x + (el.props.width || 0)));
-                        setFormElements(prev => prev.map(el => selectedIds.includes(el.id) ? { ...el, x: maxRight - (el.props.width || 0) } : el));
-                    } else if (e.key === 'ArrowTop') {
-                        targetValue = Math.min(...selectedElements.map(el => el.y));
-                        setFormElements(prev => prev.map(el => selectedIds.includes(el.id) ? { ...el, y: targetValue } : el));
-                    } else if (e.key === 'ArrowBottom') {
-                        const maxBottom = Math.max(...selectedElements.map(el => el.y + (el.props.height || 0)));
-                        setFormElements(prev => prev.map(el => selectedIds.includes(el.id) ? { ...el, y: maxBottom - (el.props.height || 0) } : el));
+                    if (isResize) {
+                        if (key === 'ArrowRight') width += step;
+                        if (key === 'ArrowLeft') width -= step;
+                        if (key === 'ArrowDown') height += step;
+                        if (key === 'ArrowUp') height -= step;
+                    } else {
+                        if (key === 'ArrowRight') x += step;
+                        if (key === 'ArrowLeft') x -= step;
+                        if (key === 'ArrowDown') y += step;
+                        if (key === 'ArrowUp') y -= step;
                     }
-                    return;
+
+                    return { ...el, x, y, props: { ...props, width, height } };
                 }
+                return el;
+            });
+        });
+    };
 
-                setFormElements(prev => {
-                    return prev.map(el => {
-                        if (selectedIds.includes(el.id)) {
-                            let { x, y, props } = el;
-                            let { width, height } = props;
-
-                            if (isResize) {
-                                if (e.key === 'ArrowRight') width += step;
-                                if (e.key === 'ArrowLeft') width -= step;
-                                if (e.key === 'ArrowDown') height += step;
-                                if (e.key === 'ArrowUp') height -= step;
-                            } else {
-                                if (e.key === 'ArrowRight') x += step;
-                                if (e.key === 'ArrowLeft') x -= step;
-                                if (e.key === 'ArrowDown') y += step;
-                                if (e.key === 'ArrowUp') y -= step;
-                            }
-
-                            return { ...el, x, y, props: { ...props, width, height } };
-                        }
-                        return el;
-                    });
-                });
-            }
-
-            if (e.key === 'Delete' || e.key === 'Backspace') {
-                setFormElements(prev => prev.filter(el => !selectedIds.includes(el.id)));
-                setSelectedIds([]);
-            }
-        };
-
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [selectedIds, formElements, gridSize, activeModal]);
+    useKeyboardShortcuts({
+        activeModal,
+        selectedIds,
+        formElements,
+        gridSize,
+        onCopy: copyToClipboard,
+        onPaste: pasteFromClipboard,
+        onCut: cutToClipboard,
+        onDelete: handleDelete,
+        onMove: handleMove,
+        onSave: saveProject,
+        onLoad: () => fileInputRef.current.click(),
+        onNew: handleNewProject,
+        onSelectAll: handleSelectAll,
+        fileInputRef,
+        saveProjectRef,
+        handleNewProjectRef
+    });
 
     const imageInputRef = useRef(null);
 
@@ -1140,110 +1104,31 @@ const Layout = () => {
             />
 
             {/* Header */}
-            <header className="h-12 bg-gray-800 text-white flex items-center justify-between px-4 shrink-0 z-30">
-                <div className="flex items-center space-x-2 font-bold text-lg">
-                    <Monitor className="text-yellow-400" size={20} />
-                    <span>Visual Form Builder</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                    <button onClick={handleNewProject} className="flex items-center space-x-1 px-3 py-1 bg-blue-500 hover:bg-blue-600 rounded text-sm transition-colors">
-                        <FilePlus size={14} />
-                        <span>Nový</span>
-                    </button>
-                    <button onClick={() => fileInputRef.current.click()} className="flex items-center space-x-1 px-3 py-1 bg-orange-600 hover:bg-orange-700 rounded text-sm transition-colors">
-                        <FolderOpen size={14} />
-                        <span>Načíst JSON</span>
-                    </button>
-                    <button onClick={saveProject} className="flex items-center space-x-1 px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded text-sm transition-colors">
-                        <Save size={14} />
-                        <span>Uložit JSON</span>
-                    </button>
-                    <button onClick={() => fileInputScaRef.current.click()} className="flex items-center space-x-1 px-3 py-1 bg-purple-600 hover:bg-purple-700 rounded text-sm transition-colors">
-                        <FolderOpen size={14} />
-                        <span>Import SCA</span>
-                    </button>
-                    <button onClick={() => fileInputSprRef.current.click()} className="flex items-center space-x-1 px-3 py-1 bg-teal-600 hover:bg-teal-700 rounded text-sm transition-colors">
-                        <FolderOpen size={14} />
-                        <span>Import SPR</span>
-                    </button>
-                    <button onClick={handleExportToPython} className="flex items-center space-x-1 px-3 py-1 bg-green-600 hover:bg-green-700 rounded text-sm transition-colors">
-                        <Code size={14} />
-                        <span>Export Python</span>
-                    </button>
-                    <div className="h-6 w-px bg-gray-600 mx-2"></div>
-                    <button
-                        onClick={() => setShowSettings(!showSettings)}
-                        className={`flex items-center space-x-1 px-3 py-1 rounded text-sm transition-colors ${showSettings ? 'bg-gray-600' : 'hover:bg-gray-700'}`}
-                    >
-                        <Settings size={14} />
-                        <span>Nastavení</span>
-                    </button>
-                </div>
-            </header>
+            {/* Header */}
+            <TopBar
+                onNew={handleNewProject}
+                onLoad={() => fileInputRef.current.click()}
+                onSave={saveProject}
+                onImportSCA={() => fileInputScaRef.current.click()}
+                onImportSPR={() => fileInputSprRef.current.click()}
+                onExportPython={handleExportToPython}
+                onToggleSettings={() => setShowSettings(!showSettings)}
+                showSettings={showSettings}
+            />
 
             {/* Settings Panel */}
             {
-                showSettings && (
-                    <div className="bg-gray-100 border-b border-gray-300 p-2 flex items-center space-x-4 px-4 shadow-inner">
-                        <div className="flex items-center space-x-2">
-                            <GridIcon size={16} className="text-gray-600" />
-                            <span className="text-sm font-medium text-gray-700">Mřížka:</span>
-                        </div>
-                        <label className="flex items-center space-x-2 text-sm text-gray-700 cursor-pointer">
-                            <input
-                                type="checkbox"
-                                checked={showGrid}
-                                onChange={(e) => setShowGrid(e.target.checked)}
-                                className="rounded text-blue-600 focus:ring-blue-500"
-                            />
-                            <span>Zobrazit</span>
-                        </label>
-                        <div className="flex items-center space-x-2">
-                            <span className="text-sm text-gray-700">Velikost:</span>
-                            <input
-                                type="number"
-                                value={gridSize}
-                                onChange={(e) => setGridSize(Math.max(5, parseInt(e.target.value) || 10))}
-                                className="w-16 border border-gray-300 rounded px-2 py-1 text-sm bg-white text-gray-900"
-                                min="5"
-                                max="100"
-                            />
-                            <span className="text-sm text-gray-500">px</span>
-                        </div>
-                        <div className="h-6 w-px bg-gray-300 mx-2"></div>
-                        <div className="flex items-center space-x-2">
-                            <span className="text-sm font-medium text-gray-700">SCA:</span>
-                            <select
-                                value={scaCharset}
-                                onChange={(e) => setScaCharset(e.target.value)}
-                                className="border border-gray-300 rounded px-2 py-1 text-sm bg-white text-gray-900 focus:outline-none focus:border-blue-500"
-                            >
-                                <option value="windows-1250">CP1250 (Win-1250)</option>
-                                <option value="ibm852">CP852 (Latin 2)</option>
-                                <option value="ibm437">CP437 (OEM US)</option>
-                                <option value="ibm850">CP850 (Latin 1)</option>
-                                <option value="utf-8">UTF-8</option>
-                                <option value="windows-1252">System Default</option>
-                            </select>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                            <span className="text-sm font-medium text-gray-700">SPR:</span>
-                            <select
-                                value={sprCharset}
-                                onChange={(e) => setSprCharset(e.target.value)}
-                                className="border border-gray-300 rounded px-2 py-1 text-sm bg-white text-gray-900 focus:outline-none focus:border-blue-500"
-                            >
-                                <option value="cp895">CP895 (Kamenický)</option>
-                                <option value="ibm852">CP852 (Latin 2)</option>
-                                <option value="windows-1250">CP1250 (Win-1250)</option>
-                                <option value="ibm437">CP437 (OEM US)</option>
-                                <option value="ibm850">CP850 (Latin 1)</option>
-                                <option value="utf-8">UTF-8</option>
-                                <option value="windows-1252">System Default</option>
-                            </select>
-                        </div>
-                    </div>
-                )
+                <SettingsPanel
+                    show={showSettings}
+                    gridSize={gridSize}
+                    onGridSizeChange={setGridSize}
+                    showGrid={showGrid}
+                    onShowGridChange={setShowGrid}
+                    scaCharset={scaCharset}
+                    onScaCharsetChange={setScaCharset}
+                    sprCharset={sprCharset}
+                    onSprCharsetChange={setSprCharset}
+                />
             }
 
             <div className="flex-1 flex relative overflow-hidden">
@@ -1269,299 +1154,24 @@ const Layout = () => {
                     activeTool={activeTool}
                     formName={formName}
                 />
-                <aside className="w-80 bg-white border-l border-gray-200 flex flex-col z-20 overflow-hidden">
-                    <div className="p-4 border-b border-gray-200 font-bold text-gray-700 bg-gray-50">
-                        VLASTNOSTI
-                    </div>
-                    <div className="flex-1 overflow-y-auto p-4">
-                        {selectedElement ? (
-                            <>
-                                <div className="text-center mb-6">
-                                    <div className="font-bold text-lg text-gray-800">{selectedElement.type}</div>
-                                    <div className="text-xs text-gray-500">{selectedElement.id}</div>
-                                </div>
-
-                                <div className="mb-6">
-                                    <div className="text-xs font-bold text-gray-500 uppercase mb-2">Rozměry a Pozice</div>
-                                    <div className="grid grid-cols-2 gap-2">
-                                        <PropInput label="X" value={selectedElement.x} onChange={(v) => {
-                                            const val = parseInt(v);
-                                            if (!isNaN(val)) {
-                                                setFormElements(els => {
-                                                    const updated = els.map(el => selectedIds.includes(el.id) ? { ...el, x: val } : el);
-                                                    return reparentElements(updated, selectedIds);
-                                                });
-                                            }
-                                        }} />
-                                        <PropInput label="Y" value={selectedElement.y} onChange={(v) => {
-                                            const val = parseInt(v);
-                                            if (!isNaN(val)) {
-                                                setFormElements(els => {
-                                                    const updated = els.map(el => selectedIds.includes(el.id) ? { ...el, y: val } : el);
-                                                    return reparentElements(updated, selectedIds);
-                                                });
-                                            }
-                                        }} />
-                                        <PropInput label="Šířka" value={selectedElement.props.width} onChange={(v) => updateWidgetProp('width', parseInt(v) || 0)} />
-                                        <PropInput label="Výška" value={selectedElement.props.height} onChange={(v) => updateWidgetProp('height', parseInt(v) || 0)} />
-                                    </div>
-                                </div>
-
-                                <div className="mb-6">
-                                    <div className="text-xs font-bold text-gray-500 uppercase mb-2">Vlastnosti</div>
-                                    <PropInput label="Name" value={selectedElement.props.name || ''} onChange={(v) => updateWidgetProp('name', v)} />
-                                    {Object.entries({ ...selectedElement.props }).map(([key, value]) => {
-                                        if (['width', 'height', 'style', 'name', 'visible', 'enabled', 'src', 'stretch', 'repeat', 'columns', 'hotkey', 'default', 'cancel'].includes(key)) return null; // Skip handled props
-                                        return (
-                                            <PropInput
-                                                key={key}
-                                                label={key}
-                                                value={value}
-                                                onChange={(v) => updateWidgetProp(key, v)}
-                                            />
-                                        );
-                                    })}
-
-                                    {['button', 'checkbox', 'radio'].includes(selectedElement.type) && (
-                                        <PropInput label="Hotkey" value={selectedElement.props.hotkey || ''} onChange={(v) => updateWidgetProp('hotkey', v)} />
-                                    )}
-
-                                    {selectedElement.type === 'button' && (
-                                        <>
-                                            <PropInput label="Default" value={selectedElement.props.default || false} onChange={(v) => updateWidgetProp('default', v === 'true' || v === true)} />
-                                            <PropInput label="Cancel" value={selectedElement.props.cancel || false} onChange={(v) => updateWidgetProp('cancel', v === 'true' || v === true)} />
-                                        </>
-                                    )}
-
-                                    {selectedElement.type === 'grid' && (
-                                        <div className="mb-4 border border-gray-200 rounded p-2 bg-gray-50">
-                                            <div className="flex items-center justify-between mb-2">
-                                                <div className="text-[10px] font-bold text-gray-500 uppercase">Sloupce</div>
-                                                <button
-                                                    onClick={() => {
-                                                        const currentCols = Array.isArray(selectedElement.props.columns) ? selectedElement.props.columns : [];
-                                                        const newCol = { header: 'New Col', field: '', width: 100 };
-                                                        updateWidgetProp('columns', [...currentCols, newCol]);
-                                                    }}
-                                                    className="p-1 bg-blue-100 text-blue-600 rounded hover:bg-blue-200"
-                                                >
-                                                    <Plus size={12} />
-                                                </button>
-                                            </div>
-                                            <div className="space-y-2">
-                                                {(Array.isArray(selectedElement.props.columns) ? selectedElement.props.columns : []).map((col, idx) => (
-                                                    <div key={idx} className="bg-white border border-gray-200 rounded p-2 text-xs">
-                                                        <div className="flex justify-between items-center mb-1">
-                                                            <span className="font-bold text-gray-600">#{idx + 1}</span>
-                                                            <button
-                                                                onClick={() => {
-                                                                    const newCols = [...selectedElement.props.columns];
-                                                                    newCols.splice(idx, 1);
-                                                                    updateWidgetProp('columns', newCols);
-                                                                }}
-                                                                className="text-red-500 hover:text-red-700"
-                                                            >
-                                                                <Trash2 size={12} />
-                                                            </button>
-                                                        </div>
-                                                        <div className="grid grid-cols-1 gap-1">
-                                                            <div className="flex items-center gap-1">
-                                                                <span className="w-10 text-gray-500">Hdr:</span>
-                                                                <input
-                                                                    className="flex-1 border rounded px-1"
-                                                                    value={col.header || ''}
-                                                                    onChange={(e) => {
-                                                                        const newCols = [...selectedElement.props.columns];
-                                                                        newCols[idx] = { ...newCols[idx], header: e.target.value };
-                                                                        updateWidgetProp('columns', newCols);
-                                                                    }}
-                                                                />
-                                                            </div>
-                                                            <div className="flex items-center gap-1">
-                                                                <span className="w-10 text-gray-500">Fld:</span>
-                                                                <input
-                                                                    className="flex-1 border rounded px-1"
-                                                                    value={col.field || ''}
-                                                                    onChange={(e) => {
-                                                                        const newCols = [...selectedElement.props.columns];
-                                                                        newCols[idx] = { ...newCols[idx], field: e.target.value };
-                                                                        updateWidgetProp('columns', newCols);
-                                                                    }}
-                                                                />
-                                                            </div>
-                                                            <div className="flex items-center gap-1">
-                                                                <span className="w-10 text-gray-500">W:</span>
-                                                                <input
-                                                                    type="number"
-                                                                    className="flex-1 border rounded px-1"
-                                                                    value={col.width || 100}
-                                                                    onChange={(e) => {
-                                                                        const newCols = [...selectedElement.props.columns];
-                                                                        newCols[idx] = { ...newCols[idx], width: parseInt(e.target.value) || 100 };
-                                                                        updateWidgetProp('columns', newCols);
-                                                                    }}
-                                                                />
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                                {(!Array.isArray(selectedElement.props.columns) || selectedElement.props.columns.length === 0) && (
-                                                    <div className="text-center text-gray-400 italic py-2">Žádné sloupce</div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {selectedElement.type === 'image' && (
-                                        <>
-                                            <div className="mb-2">
-                                                <label className="text-[10px] font-bold text-gray-500 uppercase w-full block mb-1">Src</label>
-                                                <div className="flex gap-1">
-                                                    <input
-                                                        type="text"
-                                                        value={selectedElement.props.src || ''}
-                                                        onChange={(e) => updateWidgetProp('src', e.target.value)}
-                                                        className="flex-1 border border-gray-300 rounded px-2 py-1 text-sm focus:border-blue-500 focus:outline-none"
-                                                    />
-                                                    <button
-                                                        onClick={() => imageInputRef.current.click()}
-                                                        className="px-3 py-1 bg-gray-100 border border-gray-300 hover:bg-gray-200 rounded text-xs font-bold text-gray-600"
-                                                        title="Vybrat soubor"
-                                                    >
-                                                        ...
-                                                    </button>
-                                                </div>
-                                            </div>
-                                            <PropInput label="Stretch" value={selectedElement.props.stretch || false} onChange={(v) => updateWidgetProp('stretch', v)} />
-                                            <PropInput label="Repeat" value={selectedElement.props.repeat || false} onChange={(v) => updateWidgetProp('repeat', v)} />
-                                        </>
-                                    )}
-
-                                    <PropInput label="Visible" value={selectedElement.props.visible !== false} onChange={(v) => updateWidgetProp('visible', v === 'true' || v === true)} />
-                                    <PropInput label="Enabled" value={selectedElement.props.enabled !== false} onChange={(v) => updateWidgetProp('enabled', v === 'true' || v === true)} />
-                                </div>
-
-                                <div className="mb-6">
-                                    <div className="text-xs font-bold text-gray-500 uppercase mb-2">Styl</div>
-                                    <PropInput
-                                        label="Font Size"
-                                        value={selectedElement.props.style?.fontSize || '14px'}
-                                        onChange={(v) => updateWidgetStyle('fontSize', v)}
-                                    />
-                                    <div className="mb-2">
-                                        <label className="text-[10px] font-bold text-gray-500 uppercase w-full block mb-1">Color</label>
-                                        <div className="flex gap-1">
-                                            <input
-                                                type="color"
-                                                value={selectedElement.props.style?.color || '#000000'}
-                                                onChange={(e) => updateWidgetStyle('color', e.target.value)}
-                                                className="w-8 h-8 p-0 border-0 rounded cursor-pointer"
-                                            />
-                                            <input
-                                                type="text"
-                                                value={selectedElement.props.style?.color || '#000000'}
-                                                onChange={(e) => updateWidgetStyle('color', e.target.value)}
-                                                className="flex-1 border border-gray-300 rounded px-2 py-1 text-sm focus:border-blue-500 focus:outline-none"
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {!selectedElement.isMulti && (
-                                    <div>
-                                        <div className="text-xs font-bold text-gray-500 uppercase mb-2">Události</div>
-                                        <div className="space-y-1">
-                                            {(() => {
-                                                const standardEvents = ['Click', 'RightClick', 'GotFocus', 'LostFocus'];
-                                                // Find all events for this widget in formEvents
-                                                const widgetEvents = Object.keys(formEvents)
-                                                    .filter(key => key.startsWith(`${selectedElement.id}_`))
-                                                    .map(key => key.replace(`${selectedElement.id}_`, ''));
-
-                                                // Combine and deduplicate
-                                                const allEvents = [...new Set([...standardEvents, ...widgetEvents])];
-
-                                                return allEvents.map(evt => (
-                                                    <button
-                                                        key={evt}
-                                                        onClick={() => handleEditEvent(evt)}
-                                                        className={`w-full flex items-center justify-between px-2 py-1 text-sm border rounded hover:bg-gray-50 ${formEvents[`${selectedElement.id}_${evt}`] ? 'border-blue-300 bg-blue-50 text-blue-700' : 'border-gray-300 text-gray-600'}`}
-                                                    >
-                                                        <div className="flex items-center gap-2">
-                                                            <Zap size={12} className={formEvents[`${selectedElement.id}_${evt}`] ? 'text-blue-500' : 'text-gray-400'} />
-                                                            <span>{evt}</span>
-                                                        </div>
-                                                        {formEvents[`${selectedElement.id}_${evt}`] && <span className="text-[10px] font-bold">EDIT</span>}
-                                                    </button>
-                                                ));
-                                            })()}
-                                        </div>
-                                    </div>
-                                )}
-                            </>
-                        ) : (
-                            <>
-                                <div className="text-center mt-10">
-                                    <div className="text-gray-300 mb-2">
-                                        <Monitor size={48} className="mx-auto" />
-                                    </div>
-                                    <div className="font-medium text-gray-600">Formulář</div>
-                                </div>
-
-                                <div className="mt-6 mb-6">
-                                    <div className="text-xs font-bold text-gray-500 uppercase mb-2">Nastavení Formuláře</div>
-                                    <div className="mb-2">
-                                        <PropInput label="Name" value={formName} onChange={setFormName} />
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-2 mb-4">
-                                        <PropInput label="Šířka" value={canvasSize.width} onChange={(v) => setCanvasSize({ ...canvasSize, width: parseInt(v) || 800 })} />
-                                        <PropInput label="Výška" value={canvasSize.height} onChange={(v) => setCanvasSize({ ...canvasSize, height: parseInt(v) || 600 })} />
-                                    </div>
-                                </div>
-
-                                <div className="mb-6">
-                                    <div className="text-xs font-bold text-gray-500 uppercase mb-2">Události Formuláře</div>
-                                    <div className="space-y-1">
-                                        {['Load', 'Unload', 'Init', 'Destroy', 'Click'].map(evt => (
-                                            <button
-                                                key={evt}
-                                                onClick={() => handleEditEvent(evt)}
-                                                className={`w-full flex items-center justify-between px-2 py-1 text-sm border rounded hover:bg-gray-50 ${formEvents[`Form1_${evt}`] ? 'border-blue-300 bg-blue-50 text-blue-700' : 'border-gray-300 text-gray-600'}`}
-                                            >
-                                                <div className="flex items-center gap-2">
-                                                    <Zap size={12} className={formEvents[`Form1_${evt}`] ? 'text-blue-500' : 'text-gray-400'} />
-                                                    <span>{evt}</span>
-                                                </div>
-                                                {formEvents[`Form1_${evt}`] && <span className="text-[10px] font-bold">EDIT</span>}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <div className="flex items-center justify-between mb-2">
-                                        <div className="text-xs font-bold text-gray-500 uppercase">Vlastní Metody</div>
-                                        <button onClick={() => setActiveModal('addMethod')} className="p-1 hover:bg-gray-200 rounded text-blue-600">
-                                            <Plus size={14} />
-                                        </button>
-                                    </div>
-                                    <div className="space-y-1">
-                                        {customMethods.length === 0 && <div className="text-xs text-gray-400 italic text-center py-2">Žádné metody</div>}
-                                        {customMethods.map(m => (
-                                            <div key={m.name} className="flex items-center justify-between px-2 py-1 text-sm border border-gray-300 rounded bg-white">
-                                                <span className="font-mono text-xs">{m.name}({m.args})</span>
-                                                <div className="flex items-center gap-1">
-                                                    <button onClick={() => handleEditMethod(m)} className="p-1 hover:bg-gray-100 rounded text-blue-600"><Edit size={12} /></button>
-                                                    <button onClick={() => handleDeleteMethod(m.name)} className="p-1 hover:bg-gray-100 rounded text-red-600"><Trash2 size={12} /></button>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            </>
-                        )}
-                    </div>
-                </aside>
+                <PropertiesPanel
+                    selectedElement={selectedElement}
+                    selectedIds={selectedIds}
+                    onUpdateProp={updateWidgetProp}
+                    onUpdateStyle={updateWidgetStyle}
+                    onReparent={reparentElements}
+                    formName={formName}
+                    onFormNameChange={setFormName}
+                    canvasSize={canvasSize}
+                    onCanvasSizeChange={setCanvasSize}
+                    formEvents={formEvents}
+                    onEditEvent={handleEditEvent}
+                    customMethods={customMethods}
+                    onAddMethod={() => setActiveModal('addMethod')}
+                    onEditMethod={handleEditMethod}
+                    onDeleteMethod={handleDeleteMethod}
+                    onImageSelect={() => imageInputRef.current.click()}
+                />
             </div>
         </div>
     );

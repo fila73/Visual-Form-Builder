@@ -54,6 +54,7 @@ const Toolbar = ({ activeTool, isToolLocked, onToolSelect, onToolLock }) => {
                     <button
                         key={comp.type}
                         onClick={() => onToolSelect(comp.type)}
+                        onDoubleClick={() => onToolLock(comp.type)}
                         className={`p-2 rounded hover:bg-gray-200 ${activeTool === comp.type ? 'bg-blue-100 text-blue-600' : 'text-gray-600'}`}
                         title={comp.label}
                     >
@@ -66,7 +67,7 @@ const Toolbar = ({ activeTool, isToolLocked, onToolSelect, onToolLock }) => {
 
             {/* Lock Tool */}
             <button
-                onClick={onToolLock}
+                onClick={() => activeTool && onToolLock(activeTool)}
                 className={`p-2 rounded hover:bg-gray-200 ${isToolLocked ? 'bg-red-100 text-red-600' : 'text-gray-400'}`}
                 title={isToolLocked ? "Odemknout nástroj" : "Zamknout nástroj"}
             >
