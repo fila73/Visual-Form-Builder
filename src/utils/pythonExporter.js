@@ -109,6 +109,7 @@ export const exportToPython = (widgets, customMethods, canvasSize, downloadFile,
             }
             pyCode += `        self.${n} = tk.Button(${parentVar}, ${opts})\n`;
             if (p.cancel) pyCode += `        self.bind('<Escape>', lambda e: self.${n}.invoke())\n`;
+            if (p.default) pyCode += `        self.bind('<Return>', lambda e: self.${n}.invoke())\n`;
         }
         else if (w.type === 'checkbox') {
             let opts = `text="${p.label}", variable=self.${n}_var`;
