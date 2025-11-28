@@ -1290,7 +1290,7 @@ const Layout = () => {
                                     <div className="text-xs font-bold text-gray-500 uppercase mb-2">Vlastnosti</div>
                                     <PropInput label="Name" value={selectedElement.props.name || ''} onChange={(v) => updateWidgetProp('name', v)} />
                                     {Object.entries({ ...selectedElement.props }).map(([key, value]) => {
-                                        if (['width', 'height', 'style', 'name', 'visible', 'enabled', 'src', 'stretch', 'repeat', 'columns'].includes(key)) return null; // Skip handled props
+                                        if (['width', 'height', 'style', 'name', 'visible', 'enabled', 'src', 'stretch', 'repeat', 'columns', 'hotkey', 'default', 'cancel'].includes(key)) return null; // Skip handled props
                                         return (
                                             <PropInput
                                                 key={key}
@@ -1300,6 +1300,17 @@ const Layout = () => {
                                             />
                                         );
                                     })}
+
+                                    {['button', 'checkbox', 'radio'].includes(selectedElement.type) && (
+                                        <PropInput label="Hotkey" value={selectedElement.props.hotkey || ''} onChange={(v) => updateWidgetProp('hotkey', v)} />
+                                    )}
+
+                                    {selectedElement.type === 'button' && (
+                                        <>
+                                            <PropInput label="Default" value={selectedElement.props.default || false} onChange={(v) => updateWidgetProp('default', v === 'true' || v === true)} />
+                                            <PropInput label="Cancel" value={selectedElement.props.cancel || false} onChange={(v) => updateWidgetProp('cancel', v === 'true' || v === true)} />
+                                        </>
+                                    )}
 
                                     {selectedElement.type === 'grid' && (
                                         <div className="mb-4 border border-gray-200 rounded p-2 bg-gray-50">
