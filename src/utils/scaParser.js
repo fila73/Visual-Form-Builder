@@ -1,4 +1,4 @@
-import { componentRegistry } from '../data/componentRegistry';
+import { componentRegistry } from '../data/componentRegistry.js';
 
 // Helper to find component type by label or other heuristic if needed
 // In the legacy code, it imported WIDGET_TYPES. Here we might need to map differently if registry structure changed.
@@ -66,8 +66,9 @@ export const parseSCAContent = (text, setCanvasSize, setWidgets, setSelectedId, 
                     if (!proc.trim()) return;
                     const lines = proc.trim().split('\n');
                     const name = lines[0].trim();
-                    const code = lines.slice(1).filter(l => l.trim() !== 'ENDPROC').join('\n');
-                    if (name && code) currentRecord.methods[name.toLowerCase()] = code;
+                    const codeLines = lines.slice(1).filter(l => l.trim() !== 'ENDPROC');
+                    const code = 'PASS\n' + codeLines.map(l => '# ' + l).join('\n');
+                    if (name && codeLines.length > 0) currentRecord.methods[name.toLowerCase()] = code;
                 });
                 methodBuffer = "";
                 continue;

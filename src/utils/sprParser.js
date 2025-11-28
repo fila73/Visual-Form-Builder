@@ -29,7 +29,7 @@ export const parseSPRContent = (text, setCanvasSize, setWidgets, setSelectedId, 
         if (line.match(/^PROCEDURE\s+(\w+)/i)) {
             const match = line.match(/^PROCEDURE\s+(\w+)/i);
             if (currentProcName) {
-                procedures[currentProcName.toUpperCase()] = currentProcCode.join('\n');
+                procedures[currentProcName.toUpperCase()] = 'PASS\n' + currentProcCode.map(l => '# ' + l).join('\n');
             }
             currentProcName = match[1];
             inProcedure = true;
@@ -46,7 +46,7 @@ export const parseSPRContent = (text, setCanvasSize, setWidgets, setSelectedId, 
         }
     }
     if (currentProcName) {
-        procedures[currentProcName.toUpperCase()] = currentProcCode.join('\n');
+        procedures[currentProcName.toUpperCase()] = 'PASS\n' + currentProcCode.map(l => '# ' + l).join('\n');
     }
 
     // --- PASS 2: Parse Widgets ---
