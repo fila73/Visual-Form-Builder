@@ -18,6 +18,29 @@ export const parseSPRContent = (text, setCanvasSize, setWidgets, setSelectedId, 
     let formWidth = 800;
     let formHeight = 600;
 
+    // Counters for sequential naming
+    const counters = {
+        label: 0,
+        textbox: 0,
+        button: 0,
+        checkbox: 0,
+        radio: 0,
+        combobox: 0,
+        grid: 0,
+        image: 0,
+        shape: 0,
+        container: 0,
+        editbox: 0,
+        spinner: 0
+    };
+
+    const getNextName = (type) => {
+        if (counters[type] === undefined) counters[type] = 0;
+        counters[type]++;
+        const prefix = type.charAt(0).toUpperCase() + type.slice(1);
+        return `${prefix}${counters[type]}`;
+    };
+
     // --- PASS 1: Extract Procedures ---
     let currentProcName = null;
     let currentProcCode = [];
@@ -289,7 +312,8 @@ export const parseSPRContent = (text, setCanvasSize, setWidgets, setSelectedId, 
                     text,
                     width,
                     height,
-                    name: `Label_${id.substr(4)}`,
+                    //                    name: `Label_${id.substr(4)}`,
+                    name: getNextName('label'),
                     style: { fontSize: '14px', color: '#000000' }
                 }
             });
@@ -386,13 +410,14 @@ export const parseSPRContent = (text, setCanvasSize, setWidgets, setSelectedId, 
                     const widget = {
                         id,
                         type: type === 'radio' ? 'radio' : 'button',
-                        x: startX + (groupOrientation === 'H' ? idx * (Math.round(w * COL_WIDTH) + 10) : 0),
-                        y: startY + (groupOrientation === 'V' ? idx * (Math.round(h * ROW_HEIGHT) + 5) : 0),
+                        x: startX + (groupOrientation === 'H' ? idx * (Math.round(w * COL_WIDTH) + 0) : 0),
+                        y: startY + (groupOrientation === 'V' ? idx * (Math.round(h * ROW_HEIGHT) + 0) : 0),
                         props: {
                             text: opt,
                             width: Math.round(w * COL_WIDTH),
                             height: Math.round(h * ROW_HEIGHT),
-                            name: `${type === 'radio' ? 'Option' : 'Command'}_${id.substr(4)}`,
+                            //                            name: `${type === 'radio' ? 'Option' : 'Command'}_${id.substr(4)}`,
+                            name: getNextName(type),
                             style: {
                                 fontSize: '14px',
                                 color: '#000000',
