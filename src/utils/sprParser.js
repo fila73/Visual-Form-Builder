@@ -194,7 +194,8 @@ export const parseSPRContent = (text, setCanvasSize, setWidgets, setSelectedId, 
 
                         fieldDefs.forEach(def => {
                             // Parse field definition: NAME :R :H='Title'
-                            const nameMatch = def.match(/^([\w\.]+)/);
+                            //const nameMatch = def.match(/^([\w\.]+)/);
+                            const nameMatch = def.match(/^(?:[\w]+\.)?(\w+)/);
                             const name = nameMatch ? nameMatch[1] : 'Column';
 
                             const isReadOnly = /:R/i.test(def);
@@ -211,36 +212,37 @@ export const parseSPRContent = (text, setCanvasSize, setWidgets, setSelectedId, 
                         });
 
                         const gridId = generateId();
-                        newWidgets.push({
-                            id: gridId,
-                            type: 'grid',
-                            x: container.x,
-                            y: container.y,
-                            parentId: container.id,
-                            props: {
-                                width: container.props.width,
-                                height: container.props.height,
-                                name: 'Grid_' + containerName,
-                                columns: columns,
-                                data: [],
-                                style: { fontSize: '14px', border: '1px solid #999' }
-                            }
-                        });
+                        /*                        newWidgets.push({
+                                                    id: gridId,
+                                                    type: 'grid',
+                                                    x: container.x,
+                                                    y: container.y,
+                                                    parentId: container.id,
+                                                    props: {
+                                                        width: container.props.width,
+                                                        height: container.props.height,
+                                                        name: 'Grid_' + containerName,
+                                                        columns: columns,
+                                                        data: [],
+                                                        style: { fontSize: '14px', border: '1px solid #999' }
+                                                    }
+                                                });
+                        */
                     }
                 }
             };
 
-            if (showMatch) {
-                const procName = showMatch[1].toUpperCase();
-                if (procedures[procName]) {
-                    finalFormEvents['Form1_Init'] = procedures[procName];
-                    parseEmbeddedWidgets(procedures[procName]);
-                }
-            }
             if (activateMatch) {
                 const procName = activateMatch[1].toUpperCase();
                 if (procedures[procName]) {
                     finalFormEvents['Form1_Load'] = procedures[procName];
+                    parseEmbeddedWidgets(procedures[procName]);
+                }
+            }
+            if (showMatch) {
+                const procName = showMatch[1].toUpperCase();
+                if (procedures[procName]) {
+                    finalFormEvents['Form1_Init'] = procedures[procName];
                     parseEmbeddedWidgets(procedures[procName]);
                 }
             }
