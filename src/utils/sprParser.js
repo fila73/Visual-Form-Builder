@@ -102,7 +102,7 @@ export const parseSPRContent = (text, setCanvasSize, setWidgets, setSelectedId, 
         }
     }
     if (currentProcName) {
-        procedures[currentProcName.toUpperCase()] = 'PASS\n' + currentProcCode.map(l => '# ' + l).join('\n');
+        procedures[currentProcName.toUpperCase()] = 'pass\n' + currentProcCode.map(l => '# ' + l).join('\n');
     }
 
     // --- PASS 2: Parse Widgets ---

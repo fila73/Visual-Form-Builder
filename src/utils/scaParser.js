@@ -67,7 +67,7 @@ export const parseSCAContent = (text, setCanvasSize, setWidgets, setSelectedId, 
                     const lines = proc.trim().split('\n');
                     const name = lines[0].trim();
                     const codeLines = lines.slice(1).filter(l => l.trim() !== 'ENDPROC');
-                    const code = 'PASS\n' + codeLines.map(l => '# ' + l).join('\n');
+                    const code = 'pass\n' + codeLines.map(l => '# ' + l).join('\n');
                     if (name && codeLines.length > 0) currentRecord.methods[name.toLowerCase()] = code;
                 });
                 methodBuffer = "";
