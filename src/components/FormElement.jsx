@@ -13,9 +13,23 @@ const FormElement = ({ element, selected, onMouseDown, onResizeMouseDown, childr
         ...props.style // Apply custom styles from props
     };
 
+    const isDisabled = props.enabled === false || props.disabled === true;
     const opacity = props.visible === false ? 'opacity-40' : 'opacity-100';
-    const pointerEvents = props.enabled === false ? 'pointer-events-none grayscale' : '';
+    const pointerEvents = isDisabled ? 'pointer-events-none grayscale' : '';
     const baseClass = `w-full h-full select-none group ${selected ? 'ring-2 ring-blue-600 z-50 shadow-lg' : 'hover:ring-1 hover:ring-blue-300 hover:bg-blue-50/10'} ${opacity}`;
+
+    const renderTextWithHotkey = (text, hotkey) => {
+        if (!hotkey || !text) return text;
+        const index = text.toLowerCase().indexOf(hotkey.toLowerCase());
+        if (index === -1) return text;
+        return (
+            <span>
+                {text.substring(0, index)}
+                <span className="underline">{text.charAt(index)}</span>
+                {text.substring(index + 1)}
+            </span>
+        );
+    };
 
     let content = null;
 
@@ -30,13 +44,13 @@ const FormElement = ({ element, selected, onMouseDown, onResizeMouseDown, childr
             content = <div style={{ color: props.style?.color, fontSize: props.style?.fontSize }} className={`w-full h-full bg-white text-black p-1 overflow-hidden border border-gray-600 shadow-inner text-xs whitespace-pre-wrap ${pointerEvents}`}>{props.text || props.value}</div>;
             break;
         case COMPONENT_TYPES.BUTTON:
-            content = <div className={`w-full h-full flex items-center justify-center text-sm text-black border-b-2 border-r-2 border-gray-400 bg-gray-100 active:border-t-2 active:border-l-2 active:border-b-0 active:border-r-0 ${pointerEvents}`} style={{ backgroundColor: props.bg || props.style?.backgroundColor, borderTop: '1px solid white', borderLeft: '1px solid white', color: props.style?.color, fontSize: props.style?.fontSize }}>{props.text}</div>;
+            content = <div className={`w-full h-full flex items-center justify-center text-sm text-black border-b-2 border-r-2 border-gray-400 bg-gray-100 active:border-t-2 active:border-l-2 active:border-b-0 active:border-r-0 ${pointerEvents}`} style={{ backgroundColor: props.bg || props.style?.backgroundColor, borderTop: '1px solid white', borderLeft: '1px solid white', color: props.style?.color, fontSize: props.style?.fontSize }}>{renderTextWithHotkey(props.text, props.hotkey)}</div>;
             break;
         case COMPONENT_TYPES.CHECK_BOX:
-            content = <div style={{ color: props.style?.color, fontSize: props.style?.fontSize }} className={`w-full h-full flex items-center gap-1.5 px-1 ${pointerEvents}`}><div className={`w-4 h-4 border border-gray-600 bg-white flex items-center justify-center`}>{props.checked && <CheckSquare size={12} className="text-black" />}</div><span className="truncate">{props.label || props.text}</span></div>;
+            content = <div style={{ color: props.style?.color, fontSize: props.style?.fontSize }} className={`w-full h-full flex items-center gap-1.5 px-1 ${pointerEvents}`}><div className={`w-4 h-4 border border-gray-600 bg-white flex items-center justify-center`}>{props.checked && <CheckSquare size={12} className="text-black" />}</div><span className="truncate">{renderTextWithHotkey(props.label || props.text, props.hotkey)}</span></div>;
             break;
         case COMPONENT_TYPES.RADIO:
-            content = <div style={{ color: props.style?.color, fontSize: props.style?.fontSize }} className={`w-full h-full flex items-center gap-1.5 px-1 ${pointerEvents}`}><div className="w-4 h-4 border border-gray-600 rounded-full bg-white flex items-center justify-center">{props.checked && <div className="w-2 h-2 bg-black rounded-full"></div>}</div><span className="truncate">{props.label || props.text}</span></div>;
+            content = <div style={{ color: props.style?.color, fontSize: props.style?.fontSize }} className={`w-full h-full flex items-center gap-1.5 px-1 ${pointerEvents}`}><div className="w-4 h-4 border border-gray-600 rounded-full bg-white flex items-center justify-center">{props.checked && <div className="w-2 h-2 bg-black rounded-full"></div>}</div><span className="truncate">{renderTextWithHotkey(props.label || props.text, props.hotkey)}</span></div>;
             break;
         case COMPONENT_TYPES.SPINNER:
             content = <div style={{ color: props.style?.color, fontSize: props.style?.fontSize }} className={`w-full h-full bg-white text-black px-1 flex items-center justify-between border border-gray-600 shadow-inner ${pointerEvents}`}><span className="truncate">{props.value || props.text || 0}</span><div className="flex flex-col h-full border-l border-gray-400"><div className="h-1/2 w-4 bg-gray-200 flex items-center justify-center text-[8px]">▲</div><div className="h-1/2 w-4 bg-gray-200 flex items-center justify-center text-[8px] border-t border-gray-400">▼</div></div></div>;

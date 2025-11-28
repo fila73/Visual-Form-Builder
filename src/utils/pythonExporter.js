@@ -99,9 +99,35 @@ export const exportToPython = (widgets, customMethods, canvasSize, downloadFile,
         pyCode += `        # ${n} (${w.type})\n`;
         if (w.type === 'label') pyCode += `        self.${n} = tk.Label(${parentVar}, text="${p.text}", fg="${color}")\n`;
         else if (w.type === 'textbox') { pyCode += `        self.${n} = tk.Entry(${parentVar})\n`; if (p.text) pyCode += `        self.${n}.insert(0, "${p.text}")\n`; }
-        else if (w.type === 'button') { pyCode += `        self.${n} = tk.Button(${parentVar}, text="${p.text}", bg="${bg}")\n`; }
-        else if (w.type === 'checkbox') { pyCode += `        self.${n}_var = tk.BooleanVar(value=${p.checked ? 'True' : 'False'})\n        self.${n} = tk.Checkbutton(${parentVar}, text="${p.label}", variable=self.${n}_var)\n`; }
-        else if (w.type === 'radio') pyCode += `        self.${n} = tk.Radiobutton(${parentVar}, text="${p.label}", value="${n}")\n`;
+        else if (w.type === 'button') {
+            let opts = `text="${p.text}", bg="${bg}"`;
+            if (p.enabled === false || p.disabled) opts += `, state="disabled"`;
+            if (p.default) opts += `, default="active"`;
+            if (p.hotkey && p.text) {
+                const idx = p.text.toLowerCase().indexOf(p.hotkey.toLowerCase());
+                if (idx !== -1) opts += `, underline=${idx}`;
+            }
+            pyCode += `        self.${n} = tk.Button(${parentVar}, ${opts})\n`;
+            if (p.cancel) pyCode += `        self.bind('<Escape>', lambda e: self.${n}.invoke())\n`;
+        }
+        else if (w.type === 'checkbox') {
+            let opts = `text="${p.label}", variable=self.${n}_var`;
+            if (p.enabled === false || p.disabled) opts += `, state="disabled"`;
+            if (p.hotkey && p.label) {
+                const idx = p.label.toLowerCase().indexOf(p.hotkey.toLowerCase());
+                if (idx !== -1) opts += `, underline=${idx}`;
+            }
+            pyCode += `        self.${n}_var = tk.BooleanVar(value=${p.checked ? 'True' : 'False'})\n        self.${n} = tk.Checkbutton(${parentVar}, ${opts})\n`;
+        }
+        else if (w.type === 'radio') {
+            let opts = `text="${p.label}", value="${n}"`;
+            if (p.enabled === false || p.disabled) opts += `, state="disabled"`;
+            if (p.hotkey && p.label) {
+                const idx = p.label.toLowerCase().indexOf(p.hotkey.toLowerCase());
+                if (idx !== -1) opts += `, underline=${idx}`;
+            }
+            pyCode += `        self.${n} = tk.Radiobutton(${parentVar}, ${opts})\n`;
+        }
         else if (w.type === 'combobox') pyCode += `        self.${n} = ttk.Combobox(${parentVar}, values=[${p.options ? p.options.map(i => `"${i.trim()}"`).join(', ') : ''}])\n`;
         else if (w.type === 'grid') {
             const cols = p.columns || 3;

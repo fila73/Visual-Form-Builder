@@ -41,6 +41,39 @@ export const parseSPRContent = (text, setCanvasSize, setWidgets, setSelectedId, 
         return `${prefix}${counters[type]}`;
     };
 
+    // Helper to parse caption sequences
+    const parseCaption = (caption) => {
+        let text = caption || '';
+        let disabled = false;
+        let hotkey = null;
+        let isDefault = false;
+        let isCancel = false;
+
+        if (text.includes('\\\\')) {
+            disabled = true;
+            text = text.replace(/\\\\/g, '');
+        }
+        if (text.includes('\\!')) {
+            isDefault = true;
+            text = text.replace(/\\!/g, '');
+        }
+        if (text.includes('\\?')) {
+            isCancel = true;
+            text = text.replace(/\\\?/g, '');
+        }
+
+        const hotkeyMatch = text.match(/\\<(.?)/);
+        if (hotkeyMatch) {
+            hotkey = hotkeyMatch[1];
+            text = text.replace(/\\</g, '');
+        }
+
+        // Cleanup other VFP sequences if any
+        text = text.replace(/\\/g, '');
+
+        return { text, disabled, hotkey, isDefault, isCancel };
+    };
+
     // --- PASS 1: Extract Procedures ---
     let currentProcName = null;
     let currentProcCode = [];
@@ -107,8 +140,7 @@ export const parseSPRContent = (text, setCanvasSize, setWidgets, setSelectedId, 
                     }
                 };
 
-                const dimMatch = cleanLine.match(/FROM\s+(.+?)\s+TO\s+(.+?)(?:\s+(?:FLOAT\b|NOCLOSE\b|SHADOW\b|TITLE\b|COLOR\b|SYSTEM\b|GROW\b|MINIMIZE\b|CLOSE\b|ZOOM\b|DOUBLE\b|PANEL\b|NONE\b|FONT\b|STYLE\b|ICON\b|MDI\b|HALFHEIGHT\b|FOOTER\b|FILL\b|IN\b|NAME\b|NOFLOAT\b)|$)/i);
-
+                const dimMatch = cleanLine.match(/FROM\s+(.+?)\s+TO\s+(.+?)(?:\s+(?:NOFLOAT\b|NOCLOSE\b|NOSHADOW\b|NOGROW\b|NOZOOM\b|NOMINIMIZE\b|FLOAT\b|SHADOW\b|TITLE\b|COLOR\b|SCHEME\b|SYSTEM\b|GROW\b|MINIMIZE\b|CLOSE\b|ZOOM\b|DOUBLE\b|PANEL\b|NONE\b|FONT\b|STYLE\b|ICON\b|MDI\b|HALFHEIGHT\b|FOOTER\b|FILL\b|FILE\b|IN\b|NAME\b)|$)/i);
                 if (dimMatch) {
                     const fromPart = dimMatch[1];
                     const toPart = dimMatch[2];
@@ -194,7 +226,7 @@ export const parseSPRContent = (text, setCanvasSize, setWidgets, setSelectedId, 
                             props: {
                                 width,
                                 height,
-                                name: winName,
+                                name: getNextName('container'),
                                 style: { border: '1px solid #ccc', backgroundColor: '#f0f0f0' }
                             }
                         });
@@ -207,17 +239,13 @@ export const parseSPRContent = (text, setCanvasSize, setWidgets, setSelectedId, 
                     const fieldsPart = browseMatch[1];
                     const containerName = browseMatch[2];
 
-                    // Find the container widget
-                    const container = newWidgets.find(w => w.props.name === containerName);
+                    const foundContainer = newWidgets.find(w => w.type === 'container'); // Fallback
 
-                    if (container) {
+                    if (foundContainer) {
                         const columns = [];
-                        // Split fields by comma, respecting quotes
                         const fieldDefs = fieldsPart.split(/,(?=(?:[^']*'[^']*')*[^']*$)/).map(f => f.trim());
 
                         fieldDefs.forEach(def => {
-                            // Parse field definition: NAME :R :H='Title'
-                            //const nameMatch = def.match(/^([\w\.]+)/);
                             const nameMatch = def.match(/^(?:[\w]+\.)?(\w+)/);
                             const name = nameMatch ? nameMatch[1] : 'Column';
 
@@ -229,7 +257,7 @@ export const parseSPRContent = (text, setCanvasSize, setWidgets, setSelectedId, 
                                 id: generateId(),
                                 header: header,
                                 field: name,
-                                width: 100, // Default width
+                                width: 100,
                                 readonly: isReadOnly
                             });
                         });
@@ -240,11 +268,11 @@ export const parseSPRContent = (text, setCanvasSize, setWidgets, setSelectedId, 
                             type: 'grid',
                             x: 0,
                             y: 0,
-                            parentId: container.id,
+                            parentId: foundContainer.id,
                             props: {
-                                width: container.props.width,
-                                height: container.props.height,
-                                name: 'Grid_' + containerName,
+                                width: foundContainer.props.width,
+                                height: foundContainer.props.height,
+                                name: getNextName('grid'),
                                 columns: columns,
                                 data: [],
                                 style: { fontSize: '14px', border: '1px solid #999' }
@@ -312,7 +340,6 @@ export const parseSPRContent = (text, setCanvasSize, setWidgets, setSelectedId, 
                     text,
                     width,
                     height,
-                    //                    name: `Label_${id.substr(4)}`,
                     name: getNextName('label'),
                     style: { fontSize: '14px', color: '#000000' }
                 }
@@ -352,44 +379,47 @@ export const parseSPRContent = (text, setCanvasSize, setWidgets, setSelectedId, 
             let groupOptions = [];
             let groupOrientation = 'H';
 
-            if (clauses.includes('*')) {
-                if (clauses.includes('N') || (clauses.includes('H') && !clauses.includes('R')) || (clauses.includes('V') && !clauses.includes('R'))) {
-                    type = 'button';
-                    if (clauses.includes('V')) groupOrientation = 'V';
-                    const captionPartMatch = clauses.match(/@\*[A-Z]+\s+(.*)$/i);
-                    let captionPart = captionPartMatch ? captionPartMatch[1] : '';
-                    captionPart = captionPart.replace(/\\<|\\/g, '');
-                    if (captionPart.includes(';')) {
-                        isGroup = true;
-                        groupOptions = captionPart.split(';');
-                    } else {
-                        props.text = captionPart || 'Button';
-                    }
-                }
-                else if (clauses.includes('C')) {
+            // Check for * (Button/Radio/Check)
+            const clauseMatch = clauses.match(/^(?:@?)\*([A-Z]*)(?:\s+(.*))?$/i);
+
+            if (clauseMatch) {
+                const modifiers = clauseMatch[1].toUpperCase();
+                const rawCaptionPart = clauseMatch[2] || '';
+
+                if (modifiers.includes('C')) {
                     type = 'checkbox';
-                    const captionMatch = clauses.match(/\*C\s+(.*)/);
-                    if (captionMatch) {
-                        props.text = captionMatch[1].replace(/\\<|\\/g, '').replace(/['"]/g, '');
-                    }
+                    props.text = rawCaptionPart.replace(/\\<|\\/g, '').replace(/['"]/g, '');
                 }
-                else if (clauses.includes('R')) {
+                else if (modifiers.includes('R')) {
                     type = 'radio';
-                    if (clauses.includes('V')) groupOrientation = 'V';
-                    const captionPartMatch = clauses.match(/@\*R[HV]?\s+(.*)$/i);
-                    let captionPart = captionPartMatch ? captionPartMatch[1] : '';
-                    captionPart = captionPart.replace(/\\<|\\/g, '');
-                    if (captionPart.includes(';')) {
+                    if (modifiers.includes('V')) groupOrientation = 'V';
+
+                    if (rawCaptionPart.includes(';')) {
                         isGroup = true;
-                        groupOptions = captionPart.split(';');
+                        groupOptions = rawCaptionPart.split(';');
                     } else {
-                        props.text = captionPart;
+                        const parsed = parseCaption(rawCaptionPart);
+                        props.text = parsed.text;
+                        if (parsed.disabled) props.disabled = true;
+                        if (parsed.hotkey) props.hotkey = parsed.hotkey;
                     }
                 }
-                else if (clauses.includes('I')) {
+                else {
+                    // Button (default)
                     type = 'button';
-                    props.text = '';
-                    props.style = { opacity: 0.2, border: '1px dashed red' };
+                    if (modifiers.includes('V')) groupOrientation = 'V';
+
+                    if (rawCaptionPart.includes(';')) {
+                        isGroup = true;
+                        groupOptions = rawCaptionPart.split(';');
+                    } else {
+                        const parsed = parseCaption(rawCaptionPart || 'Button');
+                        props.text = parsed.text;
+                        if (parsed.disabled) props.disabled = true;
+                        if (parsed.hotkey) props.hotkey = parsed.hotkey;
+                        if (parsed.isDefault) props.default = true;
+                        if (parsed.isCancel) props.cancel = true;
+                    }
                 }
             }
             else if (clauses.includes('^')) {
@@ -406,6 +436,7 @@ export const parseSPRContent = (text, setCanvasSize, setWidgets, setSelectedId, 
 
             if (isGroup) {
                 groupOptions.forEach((opt, idx) => {
+                    const parsed = parseCaption(opt);
                     const id = generateId();
                     const widget = {
                         id,
@@ -413,11 +444,10 @@ export const parseSPRContent = (text, setCanvasSize, setWidgets, setSelectedId, 
                         x: startX + (groupOrientation === 'H' ? idx * (Math.round(w * COL_WIDTH) + 0) : 0),
                         y: startY + (groupOrientation === 'V' ? idx * (Math.round(h * ROW_HEIGHT) + 0) : 0),
                         props: {
-                            text: opt,
+                            text: parsed.text,
                             width: Math.round(w * COL_WIDTH),
                             height: Math.round(h * ROW_HEIGHT),
-                            //                            name: `${type === 'radio' ? 'Option' : 'Command'}_${id.substr(4)}`,
-                            name: getNextName(type),
+                            name: getNextName(type === 'radio' ? 'radio' : 'button'),
                             style: {
                                 fontSize: '14px',
                                 color: '#000000',
@@ -425,6 +455,11 @@ export const parseSPRContent = (text, setCanvasSize, setWidgets, setSelectedId, 
                             }
                         }
                     };
+                    if (parsed.disabled) widget.props.disabled = true;
+                    if (parsed.hotkey) widget.props.hotkey = parsed.hotkey;
+                    if (parsed.isDefault) widget.props.default = true;
+                    if (parsed.isCancel) widget.props.cancel = true;
+
                     if (validProc) {
                         finalFormEvents[`${id}_Click`] = procedures[validProc.toUpperCase()];
                     }
@@ -465,5 +500,12 @@ export const parseSPRContent = (text, setCanvasSize, setWidgets, setSelectedId, 
     setFormEvents(finalFormEvents);
     if (setFormName) setFormName(formName);
     setSelectedId(null);
-    alert(`Načteno ${newWidgets.length} prvků z SPR formátu.`);
+    if (typeof alert !== 'undefined') alert(`Načteno ${newWidgets.length} prvků z SPR formátu.`);
+
+    return {
+        widgets: newWidgets,
+        formEvents: finalFormEvents,
+        formName: formName,
+        canvasSize: { width: formWidth, height: formHeight }
+    };
 };
