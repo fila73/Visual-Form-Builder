@@ -986,6 +986,7 @@ const Layout = () => {
     // --- KEYBOARD HANDLING ---
     useEffect(() => {
         const handleKeyDown = (e) => {
+            if (activeModal) return;
             // Clipboard Shortcuts
             if (e.ctrlKey) {
                 if (e.key === 'c' || e.key === 'C') {
@@ -1081,7 +1082,7 @@ const Layout = () => {
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [selectedIds, formElements, gridSize]);
+    }, [selectedIds, formElements, gridSize, activeModal]);
 
     const imageInputRef = useRef(null);
 
