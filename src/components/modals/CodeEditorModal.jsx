@@ -8,6 +8,23 @@ const CodeEditorModal = ({ isOpen, onClose, onSave, title, subTitle, initialCode
         setCode(initialCode || "");
     }, [initialCode, isOpen]);
 
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (!isOpen) return;
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                onClose();
+            }
+            if (e.ctrlKey && e.key === 'Enter') {
+                e.preventDefault();
+                onSave(code);
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isOpen, onClose, onSave, code]);
+
     if (!isOpen) return null;
 
     return (
@@ -29,7 +46,7 @@ const CodeEditorModal = ({ isOpen, onClose, onSave, title, subTitle, initialCode
                 </div>
                 <div className="flex-1 flex flex-col bg-slate-50">
                     <div className="bg-gray-200 px-4 py-1 text-[10px] text-gray-500 font-mono border-b border-gray-300">
-                        # Python kód (odsazení řešeno automaticky, pište zarovnané vlevo)
+                        # Python kód (odsazení řešeno automaticky, pište zarovnané vlevo) | ESC = Zrušit | CTRL+ENTER = Uložit
                     </div>
                     <textarea
                         className="flex-1 w-full p-4 font-mono text-sm bg-[#1e1e1e] text-[#d4d4d4] resize-none focus:outline-none leading-relaxed"

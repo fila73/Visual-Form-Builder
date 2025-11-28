@@ -984,11 +984,31 @@ const Layout = () => {
     };
 
     // --- KEYBOARD HANDLING ---
+    const saveProjectRef = useRef(saveProject);
+    saveProjectRef.current = saveProject;
+    const handleNewProjectRef = useRef(handleNewProject);
+    handleNewProjectRef.current = handleNewProject;
+
     useEffect(() => {
         const handleKeyDown = (e) => {
             if (activeModal) return;
             // Clipboard Shortcuts
             if (e.ctrlKey) {
+                if (e.key === 'n' || e.key === 'N') {
+                    e.preventDefault();
+                    handleNewProjectRef.current();
+                    return;
+                }
+                if (e.key === 'o' || e.key === 'O') {
+                    e.preventDefault();
+                    fileInputRef.current.click();
+                    return;
+                }
+                if (e.key === 's' || e.key === 'S') {
+                    e.preventDefault();
+                    saveProjectRef.current();
+                    return;
+                }
                 if (e.key === 'c' || e.key === 'C') {
                     e.preventDefault();
                     copyToClipboard();
