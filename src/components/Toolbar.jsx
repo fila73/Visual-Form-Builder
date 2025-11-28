@@ -55,10 +55,13 @@ const Toolbar = ({ activeTool, isToolLocked, onToolSelect, onToolLock }) => {
                         key={comp.type}
                         onClick={() => onToolSelect(comp.type)}
                         onDoubleClick={() => onToolLock(comp.type)}
-                        className={`p-2 rounded hover:bg-gray-200 ${activeTool === comp.type ? 'bg-blue-100 text-blue-600' : 'text-gray-600'}`}
+                        className={`relative p-2 rounded hover:bg-gray-200 ${activeTool === comp.type ? 'bg-blue-100 text-blue-600' : 'text-gray-600'}`}
                         title={comp.label}
                     >
                         <Icon size={20} />
+                        {activeTool === comp.type && isToolLocked && (
+                            <Lock size={10} className="absolute top-0.5 right-0.5 text-red-500" />
+                        )}
                     </button>
                 );
             })}
