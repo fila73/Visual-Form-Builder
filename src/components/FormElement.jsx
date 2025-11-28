@@ -146,10 +146,10 @@ const FormElement = ({ element, selected, onMouseDown, onResizeMouseDown, childr
                     }}
                 />
             ))}
-            {props.visible === false && <div className="absolute top-0 right-0 bg-red-500 text-white text-[8px] px-1">HIDDEN</div>}
-            {props.enabled === false && <div className="absolute bottom-0 right-0 bg-gray-500 text-white text-[8px] px-1">DISABLED</div>}
-            {type === COMPONENT_TYPES.BUTTON && props.default === true && <div className="absolute top-0 left-0 bg-blue-500 text-white text-[8px] px-1">DEFAULT</div>}
-            {type === COMPONENT_TYPES.BUTTON && props.cancel === true && <div className="absolute bottom-0 left-0 bg-orange-500 text-white text-[8px] px-1">CANCEL</div>}
+            {props.visible === false && <div className="absolute top-0 right-0 bg-red-500 text-white text-[8px] px-1 max-w-full max-h-full truncate">HIDDEN</div>}
+            {props.enabled === false && <div className="absolute bottom-0 right-0 bg-gray-500 text-white text-[8px] px-1 max-w-full max-h-full truncate">DISABLED</div>}
+            {type === COMPONENT_TYPES.BUTTON && props.default === true && <div className="absolute top-0 left-0 bg-blue-500 text-white text-[8px] px-1 max-w-full max-h-full truncate">DEFAULT</div>}
+            {type === COMPONENT_TYPES.BUTTON && props.cancel === true && <div className="absolute bottom-0 left-0 bg-orange-500 text-white text-[8px] px-1 max-w-full max-h-full truncate">CANCEL</div>}
         </div>
     );
 };
