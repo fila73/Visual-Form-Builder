@@ -215,8 +215,8 @@ export const parseSPRContent = (text, setCanvasSize, setWidgets, setSelectedId, 
                         newWidgets.push({
                             id: gridId,
                             type: 'grid',
-                            x: container.x,
-                            y: container.y,
+                            x: 0,
+                            y: 0,
                             parentId: container.id,
                             props: {
                                 width: container.props.width,
