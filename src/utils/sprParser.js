@@ -85,7 +85,7 @@ export const parseSPRContent = (text, setCanvasSize, setWidgets, setSelectedId, 
         if (line.match(/^PROCEDURE\s+(\w+)/i)) {
             const match = line.match(/^PROCEDURE\s+(\w+)/i);
             if (currentProcName) {
-                procedures[currentProcName.toUpperCase()] = 'PASS\n' + currentProcCode.map(l => '# ' + l).join('\n');
+                procedures[currentProcName.toUpperCase()] = 'pass\n' + currentProcCode.map(l => '# ' + l).join('\n');
             }
             currentProcName = match[1];
             inProcedure = true;
