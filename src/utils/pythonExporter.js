@@ -202,5 +202,9 @@ export const exportToPython = (widgets, customMethods, canvasSize, downloadFile,
     }
 
     pyCode += `if __name__ == "__main__":\n    app = Application()\n    app.mainloop()\n`;
-    downloadFile('app.py', pyCode, 'text/plain');
+
+    // Enforce CRLF
+    const crlfCode = pyCode.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
+    downloadFile('app.py', crlfCode, 'text/plain');
 };
