@@ -105,7 +105,30 @@ export const exportToPython = (widgets, customMethods, canvasSize, downloadFile,
         else if (w.type === 'combobox') pyCode += `        self.${n} = ttk.Combobox(${parentVar}, values=[${p.options ? p.options.map(i => `"${i.trim()}"`).join(', ') : ''}])\n`;
         else if (w.type === 'grid') {
             const cols = p.columns || 3;
-            pyCode += `        self.${n}_frame = tk.Frame(${parentVar})\n        self.${n} = ttk.Treeview(self.${n}_frame, columns=(${Array.from({ length: cols }, (_, i) => `"col${i + 1}"`).join(',')}), show='headings')\n`;
+            let colIds = [];
+            let headers = [];
+
+            if (Array.isArray(cols)) {
+                // Detailed columns
+                colIds = cols.map((c, i) => `col${i + 1}`);
+                headers = cols.map(c => c.header || `Col${i + 1}`);
+            } else {
+                // Simple number or string
+                const count = typeof cols === 'number' ? cols : cols.split(',').length;
+                colIds = Array.from({ length: count }, (_, i) => `col${i + 1}`);
+                headers = typeof cols === 'number' ? colIds.map(c => c) : cols.split(',');
+            }
+
+            pyCode += `        self.${n}_frame = tk.Frame(${parentVar})\n        self.${n} = ttk.Treeview(self.${n}_frame, columns=(${colIds.map(c => `"${c}"`).join(',')}), show='headings')\n`;
+
+            // Set headers
+            colIds.forEach((id, i) => {
+                pyCode += `        self.${n}.heading("${id}", text="${headers[i]}")\n`;
+                if (Array.isArray(cols) && cols[i].width) {
+                    pyCode += `        self.${n}.column("${id}", width=${cols[i].width})\n`;
+                }
+            });
+
             pyCode += `        self.${n}.pack(fill='both', expand=True)\n`;
         }
         else if (w.type === 'shape') pyCode += `        self.${n} = tk.Frame(${parentVar}, bg="${bg}")\n`;

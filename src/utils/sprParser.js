@@ -212,22 +212,21 @@ export const parseSPRContent = (text, setCanvasSize, setWidgets, setSelectedId, 
                         });
 
                         const gridId = generateId();
-                        /*                        newWidgets.push({
-                                                    id: gridId,
-                                                    type: 'grid',
-                                                    x: container.x,
-                                                    y: container.y,
-                                                    parentId: container.id,
-                                                    props: {
-                                                        width: container.props.width,
-                                                        height: container.props.height,
-                                                        name: 'Grid_' + containerName,
-                                                        columns: columns,
-                                                        data: [],
-                                                        style: { fontSize: '14px', border: '1px solid #999' }
-                                                    }
-                                                });
-                        */
+                        newWidgets.push({
+                            id: gridId,
+                            type: 'grid',
+                            x: container.x,
+                            y: container.y,
+                            parentId: container.id,
+                            props: {
+                                width: container.props.width,
+                                height: container.props.height,
+                                name: 'Grid_' + containerName,
+                                columns: columns,
+                                data: [],
+                                style: { fontSize: '14px', border: '1px solid #999' }
+                            }
+                        });
                     }
                 }
             };

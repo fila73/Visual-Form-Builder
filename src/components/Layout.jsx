@@ -1290,7 +1290,7 @@ const Layout = () => {
                                     <div className="text-xs font-bold text-gray-500 uppercase mb-2">Vlastnosti</div>
                                     <PropInput label="Name" value={selectedElement.props.name || ''} onChange={(v) => updateWidgetProp('name', v)} />
                                     {Object.entries({ ...selectedElement.props }).map(([key, value]) => {
-                                        if (['width', 'height', 'style', 'name', 'visible', 'enabled', 'src', 'stretch', 'repeat'].includes(key)) return null; // Skip handled props
+                                        if (['width', 'height', 'style', 'name', 'visible', 'enabled', 'src', 'stretch', 'repeat', 'columns'].includes(key)) return null; // Skip handled props
                                         return (
                                             <PropInput
                                                 key={key}
@@ -1300,6 +1300,85 @@ const Layout = () => {
                                             />
                                         );
                                     })}
+
+                                    {selectedElement.type === 'grid' && (
+                                        <div className="mb-4 border border-gray-200 rounded p-2 bg-gray-50">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <div className="text-[10px] font-bold text-gray-500 uppercase">Sloupce</div>
+                                                <button
+                                                    onClick={() => {
+                                                        const currentCols = Array.isArray(selectedElement.props.columns) ? selectedElement.props.columns : [];
+                                                        const newCol = { header: 'New Col', field: '', width: 100 };
+                                                        updateWidgetProp('columns', [...currentCols, newCol]);
+                                                    }}
+                                                    className="p-1 bg-blue-100 text-blue-600 rounded hover:bg-blue-200"
+                                                >
+                                                    <Plus size={12} />
+                                                </button>
+                                            </div>
+                                            <div className="space-y-2">
+                                                {(Array.isArray(selectedElement.props.columns) ? selectedElement.props.columns : []).map((col, idx) => (
+                                                    <div key={idx} className="bg-white border border-gray-200 rounded p-2 text-xs">
+                                                        <div className="flex justify-between items-center mb-1">
+                                                            <span className="font-bold text-gray-600">#{idx + 1}</span>
+                                                            <button
+                                                                onClick={() => {
+                                                                    const newCols = [...selectedElement.props.columns];
+                                                                    newCols.splice(idx, 1);
+                                                                    updateWidgetProp('columns', newCols);
+                                                                }}
+                                                                className="text-red-500 hover:text-red-700"
+                                                            >
+                                                                <Trash2 size={12} />
+                                                            </button>
+                                                        </div>
+                                                        <div className="grid grid-cols-1 gap-1">
+                                                            <div className="flex items-center gap-1">
+                                                                <span className="w-10 text-gray-500">Hdr:</span>
+                                                                <input
+                                                                    className="flex-1 border rounded px-1"
+                                                                    value={col.header || ''}
+                                                                    onChange={(e) => {
+                                                                        const newCols = [...selectedElement.props.columns];
+                                                                        newCols[idx] = { ...newCols[idx], header: e.target.value };
+                                                                        updateWidgetProp('columns', newCols);
+                                                                    }}
+                                                                />
+                                                            </div>
+                                                            <div className="flex items-center gap-1">
+                                                                <span className="w-10 text-gray-500">Fld:</span>
+                                                                <input
+                                                                    className="flex-1 border rounded px-1"
+                                                                    value={col.field || ''}
+                                                                    onChange={(e) => {
+                                                                        const newCols = [...selectedElement.props.columns];
+                                                                        newCols[idx] = { ...newCols[idx], field: e.target.value };
+                                                                        updateWidgetProp('columns', newCols);
+                                                                    }}
+                                                                />
+                                                            </div>
+                                                            <div className="flex items-center gap-1">
+                                                                <span className="w-10 text-gray-500">W:</span>
+                                                                <input
+                                                                    type="number"
+                                                                    className="flex-1 border rounded px-1"
+                                                                    value={col.width || 100}
+                                                                    onChange={(e) => {
+                                                                        const newCols = [...selectedElement.props.columns];
+                                                                        newCols[idx] = { ...newCols[idx], width: parseInt(e.target.value) || 100 };
+                                                                        updateWidgetProp('columns', newCols);
+                                                                    }}
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                                {(!Array.isArray(selectedElement.props.columns) || selectedElement.props.columns.length === 0) && (
+                                                    <div className="text-center text-gray-400 italic py-2">Žádné sloupce</div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
 
                                     {selectedElement.type === 'image' && (
                                         <>
