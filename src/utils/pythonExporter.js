@@ -110,6 +110,10 @@ export const exportToPython = (widgets, customMethods, canvasSize, downloadFile,
             pyCode += `        self.${n} = tk.Button(${parentVar}, ${opts})\n`;
             if (p.cancel) pyCode += `        self.bind('<Escape>', lambda e: self.${n}.invoke())\n`;
             if (p.default) pyCode += `        self.bind('<Return>', lambda e: self.${n}.invoke())\n`;
+            if (p.hotkey) {
+                pyCode += `        self.bind('<Alt-${p.hotkey.toLowerCase()}>', lambda e: self.${n}.invoke())\n`;
+                pyCode += `        self.bind('<Alt-${p.hotkey.toUpperCase()}>', lambda e: self.${n}.invoke())\n`;
+            }
         }
         else if (w.type === 'checkbox') {
             let opts = `text="${p.label}", variable=self.${n}_var`;
@@ -119,6 +123,10 @@ export const exportToPython = (widgets, customMethods, canvasSize, downloadFile,
                 if (idx !== -1) opts += `, underline=${idx}`;
             }
             pyCode += `        self.${n}_var = tk.BooleanVar(value=${p.checked ? 'True' : 'False'})\n        self.${n} = tk.Checkbutton(${parentVar}, ${opts})\n`;
+            if (p.hotkey) {
+                pyCode += `        self.bind('<Alt-${p.hotkey.toLowerCase()}>', lambda e: self.${n}.invoke())\n`;
+                pyCode += `        self.bind('<Alt-${p.hotkey.toUpperCase()}>', lambda e: self.${n}.invoke())\n`;
+            }
         }
         else if (w.type === 'radio') {
             let opts = `text="${p.label}", value="${n}"`;
@@ -128,6 +136,10 @@ export const exportToPython = (widgets, customMethods, canvasSize, downloadFile,
                 if (idx !== -1) opts += `, underline=${idx}`;
             }
             pyCode += `        self.${n} = tk.Radiobutton(${parentVar}, ${opts})\n`;
+            if (p.hotkey) {
+                pyCode += `        self.bind('<Alt-${p.hotkey.toLowerCase()}>', lambda e: self.${n}.invoke())\n`;
+                pyCode += `        self.bind('<Alt-${p.hotkey.toUpperCase()}>', lambda e: self.${n}.invoke())\n`;
+            }
         }
         else if (w.type === 'combobox') pyCode += `        self.${n} = ttk.Combobox(${parentVar}, values=[${p.options ? p.options.map(i => `"${i.trim()}"`).join(', ') : ''}])\n`;
         else if (w.type === 'grid') {
