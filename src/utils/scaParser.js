@@ -1,8 +1,5 @@
 import { componentRegistry } from '../data/componentRegistry.js';
-
-// Helper to find component type by label or other heuristic if needed
-// In the legacy code, it imported WIDGET_TYPES. Here we might need to map differently if registry structure changed.
-// For now, I'll adapt it to use our componentRegistry structure or just string types if they match.
+import { generateId, cleanString, vfpColorToRgb, capitalize } from './parserUtils';
 
 /**
  * Parses SCCTEXT (SCA) content and populates the form state.
@@ -19,30 +16,40 @@ import { componentRegistry } from '../data/componentRegistry.js';
  */
 export const parseSCAContent = (text, setCanvasSize, setWidgets, setSelectedId, setFormEvents, setFormName) => {
     const lines = text.split('\n');
-    const newWidgets = [];
+    const objects = parseObjects(lines);
+
+    // Process Form Properties
+    const formProps = { width: 800, height: 600 };
+    let formMethods = {};
+
+    objects.forEach(obj => {
+        if (obj.baseClass === 'form') {
+            if (obj.props.width) formProps.width = obj.props.width;
+            if (obj.props.height) formProps.height = obj.props.height;
+            if (obj.objName && setFormName) setFormName(obj.objName);
+            if (obj.props.name && setFormName) setFormName(obj.props.name);
+            formMethods = obj.methods;
+        }
+    });
+
+    // Process Widgets
+    const { newWidgets, finalFormEvents } = createWidgets(objects, formMethods);
+
+    setCanvasSize(formProps);
+    setWidgets(newWidgets);
+    if (setFormEvents) setFormEvents(finalFormEvents);
+    setSelectedId(null);
+    alert(`Načteno ${newWidgets.length} prvků z SCCTEXT formátu.`);
+};
+
+// --- Helper Functions ---
+
+const parseObjects = (lines) => {
+    const objects = [];
     let currentRecord = {};
     let inProperties = false;
     let inMethods = false;
     let methodBuffer = "";
-
-    // Temporary storage for all objects to resolve hierarchy later
-    const objects = [];
-
-    const typeMap = {
-        'commandbutton': 'button',
-        'textbox': 'textbox',
-        'editbox': 'editbox',
-        'spinner': 'spinner',
-        'label': 'label',
-        'checkbox': 'checkbox',
-        'optionbutton': 'radio',
-        'combobox': 'combobox',
-        'grid': 'grid',
-        'image': 'image',
-        'shape': 'shape',
-        'form': 'form',
-        'container': 'container'
-    };
 
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i].trim();
@@ -73,69 +80,76 @@ export const parseSCAContent = (text, setCanvasSize, setWidgets, setSelectedId, 
             if (key === 'START METHODS') { inMethods = true; continue; }
             if (key === 'END METHODS') {
                 inMethods = false;
-                // Parse methods from buffer
-                const procedures = methodBuffer.split('PROCEDURE');
-                procedures.forEach(proc => {
-                    if (!proc.trim()) return;
-                    const lines = proc.trim().split('\n');
-                    const name = lines[0].trim();
-                    const codeLines = lines.slice(1).filter(l => l.trim() !== 'ENDPROC');
-                    const code = 'pass\n' + codeLines.map(l => '# ' + l).join('\n');
-                    if (name && codeLines.length > 0) currentRecord.methods[name.toLowerCase()] = code;
-                });
+                parseMethods(methodBuffer, currentRecord.methods);
                 methodBuffer = "";
                 continue;
             }
         }
 
         if (inProperties) {
-            const propMatch = line.match(/^(\w+)\s*=\s*(.*)/);
-            if (propMatch) {
-                const pName = propMatch[1];
-                let pVal = propMatch[2];
-                // Remove quotes if string
-                if ((pVal.startsWith('"') && pVal.endsWith('"')) || (pVal.startsWith("'") && pVal.endsWith("'"))) {
-                    pVal = pVal.slice(1, -1);
-                } else if (pVal === '.T.') pVal = true;
-                else if (pVal === '.F.') pVal = false;
-                else if (!isNaN(Number(pVal))) pVal = Number(pVal);
-
-                currentRecord.props[pName.toLowerCase()] = pVal;
-            }
+            parsePropertyLine(line, currentRecord.props);
         }
 
         if (inMethods) {
-            methodBuffer += lines[i] + '\n'; // Keep original line for indentation
+            methodBuffer += lines[i] + '\n';
         }
     }
     // Push last record
     if (currentRecord.objName) objects.push(currentRecord);
 
-    // Process Objects
-    let formProps = { width: 800, height: 600 };
-    let formMethods = {};
+    // Assign IDs
+    objects.forEach(obj => {
+        obj.id = generateId();
+    });
 
-    // Map for quick lookup of objects and their future IDs
+    return objects;
+};
+
+const parsePropertyLine = (line, props) => {
+    const propMatch = line.match(/^(\w+)\s*=\s*(.*)/);
+    if (propMatch) {
+        const pName = propMatch[1];
+        let pVal = propMatch[2];
+
+        if ((pVal.startsWith('"') && pVal.endsWith('"')) || (pVal.startsWith("'") && pVal.endsWith("'"))) {
+            pVal = pVal.slice(1, -1);
+        } else if (pVal === '.T.') pVal = true;
+        else if (pVal === '.F.') pVal = false;
+        else if (!isNaN(Number(pVal))) pVal = Number(pVal);
+
+        props[pName.toLowerCase()] = pVal;
+    }
+};
+
+const parseMethods = (buffer, methods) => {
+    const procedures = buffer.split('PROCEDURE');
+    procedures.forEach(proc => {
+        if (!proc.trim()) return;
+        const lines = proc.trim().split('\n');
+        const name = lines[0].trim();
+        const codeLines = lines.slice(1).filter(l => l.trim() !== 'ENDPROC');
+        const code = 'pass\n' + codeLines.map(l => '# ' + l).join('\n');
+        if (name && codeLines.length > 0) methods[name.toLowerCase()] = code;
+    });
+};
+
+const createWidgets = (objects, formMethods) => {
+    const newWidgets = [];
     const objectsMap = {};
-    const nameToIdMap = {}; // Map objName -> generated ID
+    const nameToIdMap = {};
 
     objects.forEach(obj => {
-        // Generate unique ID for every object
-        obj.id = `obj_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
         if (obj.objName) {
             objectsMap[obj.objName] = obj;
             nameToIdMap[obj.objName] = obj.id;
         }
     });
 
-    // Helper to get absolute position of a parent container
     const getParentOffset = (parentName) => {
-        // Handle dot notation if present
         const parts = parentName.split('.');
         const immediateParentName = parts[parts.length - 1];
-
         const parentObj = objectsMap[immediateParentName];
+
         if (!parentObj) return { x: 0, y: 0 };
         if (parentObj.baseClass === 'form') return { x: 0, y: 0 };
 
@@ -146,28 +160,26 @@ export const parseSCAContent = (text, setCanvasSize, setWidgets, setSelectedId, 
         };
     };
 
-    objects.forEach(obj => {
-        if (obj.baseClass === 'form') {
-            if (obj.props.width) formProps.width = obj.props.width;
-            if (obj.props.height) formProps.height = obj.props.height;
-            if (obj.objName && setFormName) setFormName(obj.objName);
-            if (obj.props.name && setFormName) setFormName(obj.props.name);
-            formMethods = obj.methods;
-        }
-    });
-
-    // Second pass: Create Widgets
-    const flatEvents = { ...formMethods };
-
-    // Helper to capitalize event names (load -> Load, click -> Click)
-    const capitalize = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+    const typeMap = {
+        'commandbutton': 'button',
+        'textbox': 'textbox',
+        'editbox': 'editbox',
+        'spinner': 'spinner',
+        'label': 'label',
+        'checkbox': 'checkbox',
+        'optionbutton': 'radio',
+        'combobox': 'combobox',
+        'grid': 'grid',
+        'image': 'image',
+        'shape': 'shape',
+        'form': 'form',
+        'container': 'container'
+    };
 
     const prefixedFormEvents = {};
     Object.keys(formMethods).forEach(evt => {
         prefixedFormEvents[`Form1_${capitalize(evt)}`] = formMethods[evt];
     });
-
-    // Reset flatEvents to just the prefixed form events
     const finalFormEvents = { ...prefixedFormEvents };
 
     objects.forEach(obj => {
@@ -177,72 +189,39 @@ export const parseSCAContent = (text, setCanvasSize, setWidgets, setSelectedId, 
             const parentName = obj.parent;
             const offset = parentName ? getParentOffset(parentName) : { x: 0, y: 0 };
 
-            // Find default props from registry
             const registryItem = componentRegistry.find(c => c.type === mappedType);
             const defaultProps = registryItem ? registryItem.defaultProps : {};
 
-            // Use the unique ID generated in the first pass
-            const id = obj.id;
-
-            // Resolve parent ID
             let parentId = null;
             if (obj.parent) {
                 const parts = obj.parent.split('.');
                 const immediateParentName = parts[parts.length - 1];
-
                 const parentObj = objectsMap[immediateParentName];
                 if (parentObj && parentObj.baseClass !== 'form') {
                     parentId = nameToIdMap[immediateParentName];
                 }
             }
 
-            // Unique Name Check
             let finalName = obj.objName;
             const nameExists = newWidgets.some(w => w.name === finalName);
             if (nameExists) {
-                finalName = `${finalName}_${id}`;
+                finalName = `${finalName}_${obj.id}`;
             }
 
             const newWidget = {
-                id,
+                id: obj.id,
                 type: mappedType,
                 name: finalName,
-                parentId: parentId, // Store parent ID for dragging
+                parentId: parentId,
                 x: (obj.props.left || 0) + (parentId ? 0 : offset.x),
                 y: (obj.props.top || 0) + (parentId ? 0 : offset.y),
                 props: { ...defaultProps },
             };
 
             // Map Properties
-            if (obj.props.width) newWidget.props.width = obj.props.width;
-            else if (mappedType === 'textbox') newWidget.props.width = 100; // Default width for TextBox
+            mapWidgetProperties(newWidget, obj, mappedType);
 
-            if (obj.props.height) newWidget.props.height = obj.props.height;
-            else if (mappedType === 'textbox') newWidget.props.height = 23; // Default height for TextBox
-
-            // We need to adapt to the new props structure where style is often used
-            // But for now, let's keep it simple and assume the renderer handles it or we map it to style here
-            const styleUpdates = {};
-            if (obj.props.width) styleUpdates.width = `${obj.props.width}px`;
-            if (obj.props.height) styleUpdates.height = `${obj.props.height}px`;
-            if (obj.props.backcolor) styleUpdates.backgroundColor = `rgb(${obj.props.backcolor & 255}, ${(obj.props.backcolor >> 8) & 255}, ${(obj.props.backcolor >> 16) & 255})`;
-            if (obj.props.forecolor) styleUpdates.color = `rgb(${obj.props.forecolor & 255}, ${(obj.props.forecolor >> 8) & 255}, ${(obj.props.forecolor >> 16) & 255})`;
-
-            newWidget.props.style = { ...newWidget.props.style, ...styleUpdates };
-
-
-            if (obj.props.caption) newWidget.props.text = obj.props.caption;
-            if (obj.props.value) newWidget.props.text = obj.props.value; // Value overrides caption for some
-            // if (obj.props.controlsource) newWidget.props.text = obj.props.controlsource; // REMOVED: ControlSource should not overwrite text
-
-            // Map Name if present (from [OBJNAME] or Name prop)
-            // Use finalName which has uniqueness check applied
-            newWidget.props.name = finalName;
-
-            if (obj.props.visible !== undefined) newWidget.props.visible = obj.props.visible;
-            if (obj.props.enabled !== undefined) newWidget.props.enabled = obj.props.enabled;
-
-            // Map Methods to flat events
+            // Map Methods
             if (obj.methods) {
                 Object.keys(obj.methods).forEach(evt => {
                     finalFormEvents[`${newWidget.id}_${capitalize(evt)}`] = obj.methods[evt];
@@ -253,9 +232,33 @@ export const parseSCAContent = (text, setCanvasSize, setWidgets, setSelectedId, 
         }
     });
 
-    setCanvasSize(formProps);
-    setWidgets(newWidgets);
-    if (setFormEvents) setFormEvents(finalFormEvents);
-    setSelectedId(null);
-    alert(`Načteno ${newWidgets.length} prvků z SCCTEXT formátu.`);
+    return { newWidgets, finalFormEvents };
+};
+
+const mapWidgetProperties = (widget, obj, type) => {
+    if (obj.props.width) widget.props.width = obj.props.width;
+    else if (type === 'textbox') widget.props.width = 100;
+
+    if (obj.props.height) widget.props.height = obj.props.height;
+    else if (type === 'textbox') widget.props.height = 23;
+
+    const styleUpdates = {};
+    if (obj.props.width) styleUpdates.width = `${obj.props.width}px`;
+    if (obj.props.height) styleUpdates.height = `${obj.props.height}px`;
+
+    const bg = vfpColorToRgb(obj.props.backcolor);
+    if (bg) styleUpdates.backgroundColor = bg;
+
+    const fg = vfpColorToRgb(obj.props.forecolor);
+    if (fg) styleUpdates.color = fg;
+
+    widget.props.style = { ...widget.props.style, ...styleUpdates };
+
+    if (obj.props.caption) widget.props.text = obj.props.caption;
+    if (obj.props.value) widget.props.text = obj.props.value;
+
+    widget.props.name = widget.name; // Sync name prop
+
+    if (obj.props.visible !== undefined) widget.props.visible = obj.props.visible;
+    if (obj.props.enabled !== undefined) widget.props.enabled = obj.props.enabled;
 };
