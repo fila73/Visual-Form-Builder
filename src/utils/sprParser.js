@@ -41,7 +41,7 @@ export const parseSPRContent = (text, setCanvasSize, setWidgets, setSelectedId, 
     setFormEvents(finalFormEvents);
     if (setFormName) setFormName(formName);
     setSelectedId(null);
-    if (typeof alert !== 'undefined') alert(`Načteno ${newWidgets.length} prvků z SPR formátu.`);
+    if (typeof console !== 'undefined') console.log(`Načteno ${newWidgets.length} prvků z SPR formátu.`);
 
     return { widgets: newWidgets, formEvents: finalFormEvents, formName, canvasSize };
 };

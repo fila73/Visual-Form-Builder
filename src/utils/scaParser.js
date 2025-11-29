@@ -39,7 +39,7 @@ export const parseSCAContent = (text, setCanvasSize, setWidgets, setSelectedId, 
     setWidgets(newWidgets);
     if (setFormEvents) setFormEvents(finalFormEvents);
     setSelectedId(null);
-    alert(`Načteno ${newWidgets.length} prvků z SCCTEXT formátu.`);
+    console.log(`Načteno ${newWidgets.length} prvků z SCCTEXT formátu.`);
 };
 
 // --- Helper Functions ---

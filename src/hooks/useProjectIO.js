@@ -66,7 +66,7 @@ export const useProjectIO = ({
                     if (data.formName) setFormName(data.formName);
                     setSelectedIds([]);
                 }
-            } catch (err) { alert("Chyba JSON."); }
+            } catch (err) { console.error("Chyba JSON.", err); alert("Chyba JSON."); }
         };
         reader.readAsText(file); e.target.value = '';
     };
@@ -109,7 +109,7 @@ export const useProjectIO = ({
             const downloadFile = async (name, content, type) => {
                 try {
                     await writeTextFile(path, content);
-                    alert('Export úspěšný!');
+                    console.log('Export úspěšný!');
                 } catch (writeErr) {
                     console.error("Write failed:", writeErr);
                     alert("Chyba při zápisu: " + (typeof writeErr === 'object' ? JSON.stringify(writeErr) : writeErr));
@@ -168,7 +168,7 @@ export const useProjectIO = ({
 
             const data = JSON.stringify({ canvasSize, widgets: formElements, customMethods, formEvents: exportEvents, formName }, null, 2);
             await writeTextFile(path, data);
-            alert('Projekt uložen!');
+            console.log('Projekt uložen!');
         } catch (error) {
             console.error("Save failed:", error);
             alert("Chyba při ukládání: " + (error.message || (typeof error === 'object' ? JSON.stringify(error) : error)));
