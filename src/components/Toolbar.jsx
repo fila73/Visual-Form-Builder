@@ -17,6 +17,7 @@ import {
     Image,
     Layout
 } from 'lucide-react';
+import { useLanguage } from '../contexts/LanguageContext';
 
 const iconMap = {
     Type,
@@ -34,13 +35,14 @@ const iconMap = {
 };
 
 const Toolbar = ({ activeTool, isToolLocked, onToolSelect, onToolLock }) => {
+    const { t } = useLanguage();
     return (
         <div className="w-12 bg-gray-50 border-r border-gray-200 flex flex-col items-center py-4 gap-2 z-10 overflow-y-auto scrollbar-hide">
             {/* Cursor Tool */}
             <button
                 onClick={() => onToolSelect(null)}
                 className={`p-2 rounded hover:bg-gray-200 ${!activeTool ? 'bg-blue-100 text-blue-600' : 'text-gray-600'}`}
-                title="Výběr (Cursor)"
+                title={t('toolbar.select')}
             >
                 <MousePointer2 size={20} />
             </button>
@@ -72,7 +74,7 @@ const Toolbar = ({ activeTool, isToolLocked, onToolSelect, onToolLock }) => {
             <button
                 onClick={() => activeTool && onToolLock(activeTool)}
                 className={`p-2 rounded hover:bg-gray-200 ${isToolLocked ? 'bg-red-100 text-red-600' : 'text-gray-400'}`}
-                title={isToolLocked ? "Odemknout nástroj" : "Zamknout nástroj"}
+                title={isToolLocked ? t('toolbar.unlock') : t('toolbar.lock')}
             >
                 {isToolLocked ? <Lock size={20} /> : <Unlock size={20} />}
             </button>

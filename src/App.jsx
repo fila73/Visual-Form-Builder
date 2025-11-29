@@ -1,9 +1,12 @@
 import "./App.css";
 import Layout from "./components/Layout";
+import { LanguageProvider } from "./contexts/LanguageContext";
 
 function App() {
   return (
-    <Layout />
+    <LanguageProvider>
+      <Layout />
+    </LanguageProvider>
   );
 }
 

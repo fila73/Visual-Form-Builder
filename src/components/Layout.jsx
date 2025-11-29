@@ -18,8 +18,10 @@ import { decodeText } from '../utils/charsetUtils';
 import { exportToPython } from '../utils/pythonExporter';
 import { save, ask } from '@tauri-apps/plugin-dialog';
 import { writeTextFile } from '@tauri-apps/plugin-fs';
+import { useLanguage } from '../contexts/LanguageContext';
 
 const Layout = () => {
+    const { t } = useLanguage();
     const [formElements, setFormElements] = useState([]);
     const [selectedIds, setSelectedIds] = useState([]);
     const [selectionBox, setSelectionBox] = useState(null); // { startX, startY, currentX, currentY }
@@ -28,6 +30,7 @@ const Layout = () => {
     const [drawingRect, setDrawingRect] = useState(null); // { startX, startY, currentX, currentY }
     const [scaCharset, setScaCharset] = useState('windows-1250');
     const [sprCharset, setSprCharset] = useState('cp895');
+
 
     // --- CLIPBOARD OPERATIONS ---
     const copyToClipboard = async () => {
@@ -771,7 +774,7 @@ const Layout = () => {
     };
 
     const handleDeleteMethod = (name) => {
-        if (confirm(`Opravdu smazat metodu ${name}?`)) {
+        if (confirm(t('msg.confirm_delete_method', { name }))) {
             setCustomMethods(methods => methods.filter(m => m.name !== name));
         }
     };
@@ -954,8 +957,8 @@ const Layout = () => {
     };
 
     const handleNewProject = async () => {
-        const answer = await ask("Opravdu chcete začít nový projekt? Všechna neuložená data budou ztracena.", {
-            title: 'Nový projekt',
+        const answer = await ask(t('msg.confirm_new'), {
+            title: t('btn.new'),
             kind: 'warning'
         });
 

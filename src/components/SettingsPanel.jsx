@@ -1,5 +1,6 @@
 import React from 'react';
-import { Grid as GridIcon } from 'lucide-react';
+import { Grid as GridIcon, Globe } from 'lucide-react';
+import { useLanguage } from '../contexts/LanguageContext';
 
 const SettingsPanel = ({
     show,
@@ -12,13 +13,15 @@ const SettingsPanel = ({
     sprCharset,
     onSprCharsetChange
 }) => {
+    const { language, setLanguage, t } = useLanguage();
+
     if (!show) return null;
 
     return (
-        <div className="bg-gray-100 border-b border-gray-300 p-2 flex items-center space-x-4 px-4 shadow-inner">
+        <div className="bg-gray-100 border-b border-gray-300 p-2 flex items-center space-x-4 px-4 shadow-inner overflow-x-auto">
             <div className="flex items-center space-x-2">
                 <GridIcon size={16} className="text-gray-600" />
-                <span className="text-sm font-medium text-gray-700">Mřížka:</span>
+                <span className="text-sm font-medium text-gray-700">{t('settings.grid')}</span>
             </div>
             <label className="flex items-center space-x-2 text-sm text-gray-700 cursor-pointer">
                 <input
@@ -27,10 +30,10 @@ const SettingsPanel = ({
                     onChange={(e) => onShowGridChange(e.target.checked)}
                     className="rounded text-blue-600 focus:ring-blue-500"
                 />
-                <span>Zobrazit</span>
+                <span>{t('settings.show')}</span>
             </label>
             <div className="flex items-center space-x-2">
-                <span className="text-sm text-gray-700">Velikost:</span>
+                <span className="text-sm text-gray-700">{t('settings.size')}</span>
                 <input
                     type="number"
                     value={gridSize}
@@ -43,7 +46,7 @@ const SettingsPanel = ({
             </div>
             <div className="h-6 w-px bg-gray-300 mx-2"></div>
             <div className="flex items-center space-x-2">
-                <span className="text-sm font-medium text-gray-700">SCA:</span>
+                <span className="text-sm font-medium text-gray-700">{t('settings.sca')}</span>
                 <select
                     value={scaCharset}
                     onChange={(e) => onScaCharsetChange(e.target.value)}
@@ -58,7 +61,7 @@ const SettingsPanel = ({
                 </select>
             </div>
             <div className="flex items-center space-x-2">
-                <span className="text-sm font-medium text-gray-700">SPR:</span>
+                <span className="text-sm font-medium text-gray-700">{t('settings.spr')}</span>
                 <select
                     value={sprCharset}
                     onChange={(e) => onSprCharsetChange(e.target.value)}
@@ -71,6 +74,19 @@ const SettingsPanel = ({
                     <option value="ibm850">CP850 (Latin 1)</option>
                     <option value="utf-8">UTF-8</option>
                     <option value="windows-1252">System Default</option>
+                </select>
+            </div>
+            <div className="h-6 w-px bg-gray-300 mx-2"></div>
+            <div className="flex items-center space-x-2">
+                <Globe size={16} className="text-gray-600" />
+                <span className="text-sm font-medium text-gray-700">{t('settings.language')}</span>
+                <select
+                    value={language}
+                    onChange={(e) => setLanguage(e.target.value)}
+                    className="border border-gray-300 rounded px-2 py-1 text-sm bg-white text-gray-900 focus:outline-none focus:border-blue-500"
+                >
+                    <option value="cs">{t('settings.lang.cs')}</option>
+                    <option value="en">{t('settings.lang.en')}</option>
                 </select>
             </div>
         </div>

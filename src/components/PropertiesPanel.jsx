@@ -1,6 +1,7 @@
 import React from 'react';
 import { Monitor, Zap, Plus, Edit, Trash2 } from 'lucide-react';
 import PropInput from './PropInput';
+import { useLanguage } from '../contexts/LanguageContext';
 
 const PropertiesPanel = ({
     selectedElement,
@@ -20,10 +21,11 @@ const PropertiesPanel = ({
     onDeleteMethod,
     onImageSelect
 }) => {
+    const { t } = useLanguage();
     return (
         <aside className="w-80 bg-white border-l border-gray-200 flex flex-col z-20 overflow-hidden">
             <div className="p-4 border-b border-gray-200 font-bold text-gray-700 bg-gray-50">
-                VLASTNOSTI
+                {t('prop.properties')}
             </div>
             <div className="flex-1 overflow-y-auto p-4">
                 {selectedElement ? (
@@ -34,30 +36,30 @@ const PropertiesPanel = ({
                         </div>
 
                         <div className="mb-6">
-                            <div className="text-xs font-bold text-gray-500 uppercase mb-2">Rozměry a Pozice</div>
+                            <div className="text-xs font-bold text-gray-500 uppercase mb-2">{t('prop.dimensions_position')}</div>
                             <div className="grid grid-cols-2 gap-2">
-                                <PropInput label="X" value={selectedElement.x} onChange={(v) => {
+                                <PropInput label={t('prop.x')} value={selectedElement.x} onChange={(v) => {
                                     const val = parseInt(v);
                                     if (!isNaN(val)) onReparent(selectedIds, { x: val });
                                 }} />
-                                <PropInput label="Y" value={selectedElement.y} onChange={(v) => {
+                                <PropInput label={t('prop.y')} value={selectedElement.y} onChange={(v) => {
                                     const val = parseInt(v);
                                     if (!isNaN(val)) onReparent(selectedIds, { y: val });
                                 }} />
-                                <PropInput label="Šířka" value={selectedElement.props.width} onChange={(v) => onUpdateProp('width', parseInt(v) || 0)} />
-                                <PropInput label="Výška" value={selectedElement.props.height} onChange={(v) => onUpdateProp('height', parseInt(v) || 0)} />
+                                <PropInput label={t('prop.width')} value={selectedElement.props.width} onChange={(v) => onUpdateProp('width', parseInt(v) || 0)} />
+                                <PropInput label={t('prop.height')} value={selectedElement.props.height} onChange={(v) => onUpdateProp('height', parseInt(v) || 0)} />
                             </div>
                         </div>
 
                         <div className="mb-6">
-                            <div className="text-xs font-bold text-gray-500 uppercase mb-2">Vlastnosti</div>
-                            <PropInput label="Name" value={selectedElement.props.name || ''} onChange={(v) => onUpdateProp('name', v)} />
+                            <div className="text-xs font-bold text-gray-500 uppercase mb-2">{t('prop.properties_section')}</div>
+                            <PropInput label={t('prop.name')} value={selectedElement.props.name || ''} onChange={(v) => onUpdateProp('name', v)} />
                             {Object.entries({ ...selectedElement.props }).map(([key, value]) => {
                                 if (['width', 'height', 'style', 'name', 'visible', 'enabled', 'src', 'stretch', 'repeat', 'columns', 'hotkey', 'default', 'cancel'].includes(key)) return null; // Skip handled props
                                 return (
                                     <PropInput
                                         key={key}
-                                        label={key}
+                                        label={t('prop.' + key, { defaultValue: key })}
                                         value={value}
                                         onChange={(v) => onUpdateProp(key, v)}
                                     />
@@ -65,20 +67,20 @@ const PropertiesPanel = ({
                             })}
 
                             {['button', 'checkbox', 'radio'].includes(selectedElement.type) && (
-                                <PropInput label="Hotkey" value={selectedElement.props.hotkey || ''} onChange={(v) => onUpdateProp('hotkey', v)} />
+                                <PropInput label={t('prop.hotkey')} value={selectedElement.props.hotkey || ''} onChange={(v) => onUpdateProp('hotkey', v)} />
                             )}
 
                             {selectedElement.type === 'button' && (
                                 <>
-                                    <PropInput label="Default" value={selectedElement.props.default || false} onChange={(v) => onUpdateProp('default', v === 'true' || v === true)} />
-                                    <PropInput label="Cancel" value={selectedElement.props.cancel || false} onChange={(v) => onUpdateProp('cancel', v === 'true' || v === true)} />
+                                    <PropInput label={t('prop.default')} value={selectedElement.props.default || false} onChange={(v) => onUpdateProp('default', v === 'true' || v === true)} />
+                                    <PropInput label={t('prop.cancel')} value={selectedElement.props.cancel || false} onChange={(v) => onUpdateProp('cancel', v === 'true' || v === true)} />
                                 </>
                             )}
 
                             {selectedElement.type === 'grid' && (
                                 <div className="mb-4 border border-gray-200 rounded p-2 bg-gray-50">
                                     <div className="flex items-center justify-between mb-2">
-                                        <div className="text-[10px] font-bold text-gray-500 uppercase">Sloupce</div>
+                                        <div className="text-[10px] font-bold text-gray-500 uppercase">{t('prop.columns')}</div>
                                         <button
                                             onClick={() => {
                                                 const currentCols = Array.isArray(selectedElement.props.columns) ? selectedElement.props.columns : [];
@@ -108,7 +110,7 @@ const PropertiesPanel = ({
                                                 </div>
                                                 <div className="grid grid-cols-1 gap-1">
                                                     <div className="flex items-center gap-1">
-                                                        <span className="w-10 text-gray-500">Hdr:</span>
+                                                        <span className="w-10 text-gray-500">{t('prop.column_header')}</span>
                                                         <input
                                                             className="flex-1 border rounded px-1"
                                                             value={col.header || ''}
@@ -120,7 +122,7 @@ const PropertiesPanel = ({
                                                         />
                                                     </div>
                                                     <div className="flex items-center gap-1">
-                                                        <span className="w-10 text-gray-500">Fld:</span>
+                                                        <span className="w-10 text-gray-500">{t('prop.column_field')}</span>
                                                         <input
                                                             className="flex-1 border rounded px-1"
                                                             value={col.field || ''}
@@ -132,7 +134,7 @@ const PropertiesPanel = ({
                                                         />
                                                     </div>
                                                     <div className="flex items-center gap-1">
-                                                        <span className="w-10 text-gray-500">W:</span>
+                                                        <span className="w-10 text-gray-500">{t('prop.column_width')}</span>
                                                         <input
                                                             type="number"
                                                             className="flex-1 border rounded px-1"
@@ -148,7 +150,7 @@ const PropertiesPanel = ({
                                             </div>
                                         ))}
                                         {(!Array.isArray(selectedElement.props.columns) || selectedElement.props.columns.length === 0) && (
-                                            <div className="text-center text-gray-400 italic py-2">Žádné sloupce</div>
+                                            <div className="text-center text-gray-400 italic py-2">{t('prop.no_columns')}</div>
                                         )}
                                     </div>
                                 </div>
@@ -157,7 +159,7 @@ const PropertiesPanel = ({
                             {selectedElement.type === 'image' && (
                                 <>
                                     <div className="mb-2">
-                                        <label className="text-[10px] font-bold text-gray-500 uppercase w-full block mb-1">Src</label>
+                                        <label className="text-[10px] font-bold text-gray-500 uppercase w-full block mb-1">{t('prop.src')}</label>
                                         <div className="flex gap-1">
                                             <input
                                                 type="text"
@@ -168,30 +170,30 @@ const PropertiesPanel = ({
                                             <button
                                                 onClick={onImageSelect}
                                                 className="px-3 py-1 bg-gray-100 border border-gray-300 hover:bg-gray-200 rounded text-xs font-bold text-gray-600"
-                                                title="Vybrat soubor"
+                                                title={t('prop.select_file')}
                                             >
                                                 ...
                                             </button>
                                         </div>
                                     </div>
-                                    <PropInput label="Stretch" value={selectedElement.props.stretch || false} onChange={(v) => onUpdateProp('stretch', v)} />
-                                    <PropInput label="Repeat" value={selectedElement.props.repeat || false} onChange={(v) => onUpdateProp('repeat', v)} />
+                                    <PropInput label={t('prop.stretch')} value={selectedElement.props.stretch || false} onChange={(v) => onUpdateProp('stretch', v)} />
+                                    <PropInput label={t('prop.repeat')} value={selectedElement.props.repeat || false} onChange={(v) => onUpdateProp('repeat', v)} />
                                 </>
                             )}
 
-                            <PropInput label="Visible" value={selectedElement.props.visible !== false} onChange={(v) => onUpdateProp('visible', v === 'true' || v === true)} />
-                            <PropInput label="Enabled" value={selectedElement.props.enabled !== false} onChange={(v) => onUpdateProp('enabled', v === 'true' || v === true)} />
+                            <PropInput label={t('prop.visible')} value={selectedElement.props.visible !== false} onChange={(v) => onUpdateProp('visible', v === 'true' || v === true)} />
+                            <PropInput label={t('prop.enabled')} value={selectedElement.props.enabled !== false} onChange={(v) => onUpdateProp('enabled', v === 'true' || v === true)} />
                         </div>
 
                         <div className="mb-6">
-                            <div className="text-xs font-bold text-gray-500 uppercase mb-2">Styl</div>
+                            <div className="text-xs font-bold text-gray-500 uppercase mb-2">{t('prop.style')}</div>
                             <PropInput
-                                label="Font Size"
+                                label={t('prop.font_size')}
                                 value={selectedElement.props.style?.fontSize || '14px'}
                                 onChange={(v) => onUpdateStyle('fontSize', v)}
                             />
                             <div className="mb-2">
-                                <label className="text-[10px] font-bold text-gray-500 uppercase w-full block mb-1">Color</label>
+                                <label className="text-[10px] font-bold text-gray-500 uppercase w-full block mb-1">{t('prop.color')}</label>
                                 <div className="flex gap-1">
                                     <input
                                         type="color"
@@ -211,7 +213,7 @@ const PropertiesPanel = ({
 
                         {!selectedElement.isMulti && (
                             <div>
-                                <div className="text-xs font-bold text-gray-500 uppercase mb-2">Události</div>
+                                <div className="text-xs font-bold text-gray-500 uppercase mb-2">{t('prop.events')}</div>
                                 <div className="space-y-1">
                                     {(() => {
                                         const standardEvents = ['Click', 'RightClick', 'GotFocus', 'LostFocus'];
@@ -247,22 +249,22 @@ const PropertiesPanel = ({
                             <div className="text-gray-300 mb-2">
                                 <Monitor size={48} className="mx-auto" />
                             </div>
-                            <div className="font-medium text-gray-600">Formulář</div>
+                            <div className="font-medium text-gray-600">{t('prop.form')}</div>
                         </div>
 
                         <div className="mt-6 mb-6">
-                            <div className="text-xs font-bold text-gray-500 uppercase mb-2">Nastavení Formuláře</div>
+                            <div className="text-xs font-bold text-gray-500 uppercase mb-2">{t('prop.form_settings')}</div>
                             <div className="mb-2">
-                                <PropInput label="Name" value={formName} onChange={onFormNameChange} />
+                                <PropInput label={t('prop.name')} value={formName} onChange={onFormNameChange} />
                             </div>
                             <div className="grid grid-cols-2 gap-2 mb-4">
-                                <PropInput label="Šířka" value={canvasSize.width} onChange={(v) => onCanvasSizeChange({ ...canvasSize, width: parseInt(v) || 800 })} />
-                                <PropInput label="Výška" value={canvasSize.height} onChange={(v) => onCanvasSizeChange({ ...canvasSize, height: parseInt(v) || 600 })} />
+                                <PropInput label={t('prop.width')} value={canvasSize.width} onChange={(v) => onCanvasSizeChange({ ...canvasSize, width: parseInt(v) || 800 })} />
+                                <PropInput label={t('prop.height')} value={canvasSize.height} onChange={(v) => onCanvasSizeChange({ ...canvasSize, height: parseInt(v) || 600 })} />
                             </div>
                         </div>
 
                         <div className="mb-6">
-                            <div className="text-xs font-bold text-gray-500 uppercase mb-2">Události Formuláře</div>
+                            <div className="text-xs font-bold text-gray-500 uppercase mb-2">{t('prop.form_events')}</div>
                             <div className="space-y-1">
                                 {['Load', 'Unload', 'Init', 'Destroy', 'Click'].map(evt => (
                                     <button
@@ -282,13 +284,13 @@ const PropertiesPanel = ({
 
                         <div>
                             <div className="flex items-center justify-between mb-2">
-                                <div className="text-xs font-bold text-gray-500 uppercase">Vlastní Metody</div>
+                                <div className="text-xs font-bold text-gray-500 uppercase">{t('prop.custom_methods')}</div>
                                 <button onClick={onAddMethod} className="p-1 hover:bg-gray-200 rounded text-blue-600">
                                     <Plus size={14} />
                                 </button>
                             </div>
                             <div className="space-y-1">
-                                {customMethods.length === 0 && <div className="text-xs text-gray-400 italic text-center py-2">Žádné metody</div>}
+                                {customMethods.length === 0 && <div className="text-xs text-gray-400 italic text-center py-2">{t('prop.no_methods')}</div>}
                                 {customMethods.map(m => (
                                     <div key={m.name} className="flex items-center justify-between px-2 py-1 text-sm border border-gray-300 rounded bg-white">
                                         <span className="font-mono text-xs">{m.name}({m.args})</span>
