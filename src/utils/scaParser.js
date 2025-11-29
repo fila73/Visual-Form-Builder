@@ -4,6 +4,19 @@ import { componentRegistry } from '../data/componentRegistry.js';
 // In the legacy code, it imported WIDGET_TYPES. Here we might need to map differently if registry structure changed.
 // For now, I'll adapt it to use our componentRegistry structure or just string types if they match.
 
+/**
+ * Parses SCCTEXT (SCA) content and populates the form state.
+ * 
+ * SCCTEXT is a text-based representation of Visual FoxPro forms.
+ * This parser extracts object definitions, properties, and methods.
+ * 
+ * @param {string} text - The raw SCCTEXT content
+ * @param {Function} setCanvasSize - State setter for canvas dimensions
+ * @param {Function} setWidgets - State setter for form elements
+ * @param {Function} setSelectedId - State setter for selection
+ * @param {Function} setFormEvents - State setter for form events
+ * @param {Function} setFormName - State setter for form name
+ */
 export const parseSCAContent = (text, setCanvasSize, setWidgets, setSelectedId, setFormEvents, setFormName) => {
     const lines = text.split('\n');
     const newWidgets = [];

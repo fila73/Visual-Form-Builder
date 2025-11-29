@@ -2,6 +2,20 @@ import React from 'react';
 import { COMPONENT_TYPES } from '../data/componentRegistry';
 import { CheckSquare, Image as ImageIcon } from 'lucide-react';
 
+/**
+ * Renders a single form element (widget) on the canvas.
+ * 
+ * Handles rendering of different component types (Label, Button, TextBox, etc.)
+ * and manages selection/resize handles.
+ * 
+ * @component
+ * @param {Object} props
+ * @param {Object} props.element - The widget data object
+ * @param {boolean} props.selected - Whether the widget is currently selected
+ * @param {Function} props.onMouseDown - Handler for mouse down event (selection/dragging)
+ * @param {Function} props.onResizeMouseDown - Handler for resize handle interaction
+ * @param {React.ReactNode} props.children - Child elements (for Container type)
+ */
 const FormElement = ({ element, selected, onMouseDown, onResizeMouseDown, children }) => {
     const { type, props } = element;
 

@@ -20,6 +20,18 @@ import { save, ask } from '@tauri-apps/plugin-dialog';
 import { writeTextFile } from '@tauri-apps/plugin-fs';
 import { useLanguage } from '../contexts/LanguageContext';
 
+/**
+ * Main Layout component for the Visual Form Builder.
+ * 
+ * This component acts as the central controller for the application, managing:
+ * - Application state (widgets, selection, tools)
+ * - Canvas rendering and interaction
+ * - Clipboard operations (Copy/Cut/Paste)
+ * - File I/O (Load/Save/Import/Export)
+ * - Drag and drop logic (Moving, Resizing, Reparenting)
+ * 
+ * @component
+ */
 const Layout = () => {
     const { t } = useLanguage();
     const [formElements, setFormElements] = useState([]);
