@@ -50,8 +50,18 @@ const translateVFPtoPython = (vfpCode) => {
     return py;
 };
 
-export const exportToPython = (widgets, customMethods, canvasSize, downloadFile, formEvents = {}) => {
-    let pyCode = `import tkinter as tk\nfrom tkinter import ttk\nfrom tkinter import messagebox\n\nclass Application(tk.Tk):\n    def __init__(self):\n        super().__init__()\n        self.geometry("${canvasSize.width}x${canvasSize.height}")\n        self.create_widgets()\n        self.init_custom()\n`;
+export const exportToPython = (widgets, customMethods, canvasSize, downloadFile, formEvents = {}, formProps = {}) => {
+    let pyCode = `import tkinter as tk\nfrom tkinter import ttk\nfrom tkinter import messagebox\n\nclass Application(tk.Tk):\n    def __init__(self):\n        super().__init__()\n        self.geometry("${canvasSize.width}x${canvasSize.height}")\n        self.title("${formProps.caption || 'Form1'}")\n`;
+
+    if (formProps.maxButton === false) {
+        pyCode += `        self.resizable(False, False)\n`;
+    }
+    if (formProps.controlBox === false) {
+        // pyCode += `        self.overrideredirect(True)\n`; // Removes title bar entirely
+        pyCode += `        self.protocol("WM_DELETE_WINDOW", lambda: None)\n`; // Disable close button
+    }
+
+    pyCode += `        self.create_widgets()\n        self.init_custom()\n`;
 
     // Form Events (Load/Init)
     if (formEvents['Form1_Load']) pyCode += `        self.form_load()\n`;

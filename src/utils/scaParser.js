@@ -14,12 +14,18 @@ import { generateId, cleanString, vfpColorToRgb, capitalize } from './parserUtil
  * @param {Function} setFormEvents - State setter for form events
  * @param {Function} setFormName - State setter for form name
  */
-export const parseSCAContent = (text, setCanvasSize, setWidgets, setSelectedId, setFormEvents, setFormName) => {
+export const parseSCAContent = (text, setCanvasSize, setWidgets, setSelectedId, setFormEvents, setFormName, setFormProps) => {
     const lines = text.split('\n');
     const objects = parseObjects(lines);
 
     // Process Form Properties
     const formProps = { width: 800, height: 600 };
+    const extendedProps = {
+        caption: 'Form1',
+        minButton: true,
+        maxButton: true,
+        controlBox: true
+    };
     let formMethods = {};
 
     objects.forEach(obj => {
@@ -28,6 +34,12 @@ export const parseSCAContent = (text, setCanvasSize, setWidgets, setSelectedId, 
             if (obj.props.height) formProps.height = obj.props.height;
             if (obj.objName && setFormName) setFormName(obj.objName);
             if (obj.props.name && setFormName) setFormName(obj.props.name);
+
+            if (obj.props.caption) extendedProps.caption = obj.props.caption;
+            if (obj.props.minbutton !== undefined) extendedProps.minButton = obj.props.minbutton;
+            if (obj.props.maxbutton !== undefined) extendedProps.maxButton = obj.props.maxbutton;
+            if (obj.props.controlbox !== undefined) extendedProps.controlBox = obj.props.controlbox; // Note: VFP uses ControlBox
+
             formMethods = obj.methods;
         }
     });
@@ -36,6 +48,7 @@ export const parseSCAContent = (text, setCanvasSize, setWidgets, setSelectedId, 
     const { newWidgets, finalFormEvents } = createWidgets(objects, formMethods);
 
     setCanvasSize(formProps);
+    if (setFormProps) setFormProps(extendedProps);
     setWidgets(newWidgets);
     if (setFormEvents) setFormEvents(finalFormEvents);
     setSelectedId(null);

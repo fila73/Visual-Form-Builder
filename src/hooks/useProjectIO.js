@@ -13,8 +13,10 @@ export const useProjectIO = ({
     setFormName, formName,
     setCanvasSize, canvasSize,
     setCustomMethods, customMethods,
+    setCustomMethods, customMethods,
     setSelectedIds,
-    scaCharset, sprCharset
+    scaCharset, sprCharset,
+    formProps, setFormProps
 }) => {
     const { t } = useLanguage();
     const fileInputRef = useRef(null);
@@ -64,6 +66,7 @@ export const useProjectIO = ({
 
                     setFormEvents(restoredEvents);
                     if (data.formName) setFormName(data.formName);
+                    if (data.formProps && setFormProps) setFormProps(data.formProps);
                     setSelectedIds([]);
                 }
             } catch (err) { console.error("Chyba JSON.", err); alert("Chyba JSON."); }
@@ -77,7 +80,7 @@ export const useProjectIO = ({
         const reader = new FileReader();
         reader.onload = (event) => {
             const text = decodeText(event.target.result, scaCharset);
-            parseSCAContent(text, setCanvasSize, setFormElements, (id) => setSelectedIds(id ? [id] : []), setFormEvents, setFormName);
+            parseSCAContent(text, setCanvasSize, setFormElements, (id) => setSelectedIds(id ? [id] : []), setFormEvents, setFormName, setFormProps);
         };
         reader.readAsArrayBuffer(file); e.target.value = '';
     };
@@ -88,7 +91,7 @@ export const useProjectIO = ({
         const reader = new FileReader();
         reader.onload = (event) => {
             const text = decodeText(event.target.result, sprCharset);
-            parseSPRContent(text, setCanvasSize, setFormElements, (id) => setSelectedIds(id ? [id] : []), setFormEvents, setFormName);
+            parseSPRContent(text, setCanvasSize, setFormElements, (id) => setSelectedIds(id ? [id] : []), setFormEvents, setFormName, setFormProps);
         };
         reader.readAsArrayBuffer(file); e.target.value = '';
     };
@@ -116,7 +119,7 @@ export const useProjectIO = ({
                 }
             };
 
-            exportToPython(formElements, customMethods, canvasSize, downloadFile, formEvents);
+            exportToPython(formElements, customMethods, canvasSize, downloadFile, formEvents, formProps);
         } catch (error) {
             console.error("Export failed:", error);
             alert("Chyba při exportu: " + (error.message || JSON.stringify(error)));
@@ -166,7 +169,7 @@ export const useProjectIO = ({
                 }
             });
 
-            const data = JSON.stringify({ canvasSize, widgets: formElements, customMethods, formEvents: exportEvents, formName }, null, 2);
+            const data = JSON.stringify({ canvasSize, widgets: formElements, customMethods, formEvents: exportEvents, formName, formProps }, null, 2);
             await writeTextFile(path, data);
             console.log('Projekt uložen!');
         } catch (error) {
@@ -187,6 +190,7 @@ export const useProjectIO = ({
             setFormEvents({});
             setFormName('Form1');
             setCanvasSize({ width: 800, height: 600 });
+            if (setFormProps) setFormProps({ caption: 'Form1', minButton: true, maxButton: true, controlBox: true });
             setSelectedIds([]);
         }
     };

@@ -51,7 +51,8 @@ const Layout = () => {
         customMethods, setCustomMethods,
         formEvents, setFormEvents,
         updateWidgetProp, updateWidgetStyle,
-        handleDelete, handleSelectAll
+        handleDelete, handleSelectAll,
+        formProps, setFormProps, updateFormProp
     } = useFormState();
 
     // 2. Project I/O
@@ -66,7 +67,8 @@ const Layout = () => {
         setCanvasSize, canvasSize,
         setCustomMethods, customMethods,
         setSelectedIds,
-        scaCharset, sprCharset
+        scaCharset, sprCharset,
+        formProps, setFormProps
     });
 
     // 3. Clipboard
@@ -284,6 +286,7 @@ const Layout = () => {
                     drawingRect={drawingRect}
                     activeTool={activeTool}
                     formName={formName}
+                    formProps={formProps}
                 />
                 <PropertiesPanel
                     selectedElement={selectedElement}
@@ -307,6 +310,8 @@ const Layout = () => {
                     onEditMethod={handleEditMethod}
                     onDeleteMethod={handleDeleteMethod}
                     onImageSelect={() => imageInputRef.current.click()}
+                    formProps={formProps}
+                    onUpdateFormProp={updateFormProp}
                 />
             </div>
         </div>

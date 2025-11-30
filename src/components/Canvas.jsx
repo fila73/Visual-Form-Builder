@@ -16,7 +16,8 @@ const Canvas = ({
     selectionBox,
     drawingRect,
     activeTool,
-    formName
+    formName,
+    formProps
 }) => {
     const { t } = useLanguage();
     const style = {
@@ -55,13 +56,40 @@ const Canvas = ({
                 <span>{t('canvas.grid')} {showGrid ? `${gridSize}px` : 'Off'}</span>
             </div>
             <div className="flex-1 p-8 overflow-auto flex justify-center items-center bg-gray-500" onMouseDown={onCanvasMouseDown}>
-                <div
-                    ref={canvasRef}
-                    style={style}
-                    className="bg-white shadow-lg relative transition-all duration-200"
-                    onClick={(e) => e.stopPropagation()} // Prevent canvas click when clicking on the form area
-                >
-                    <div style={{ width: `${canvasSize?.width || 800}px`, height: `${canvasSize?.height || 600}px`, position: 'relative' }}>
+                <div className="shadow-lg flex flex-col">
+                    {/* Window Title Bar */}
+                    <div className="h-8 bg-blue-900 flex items-center justify-between px-2 select-none">
+                        <div className="text-white text-sm font-semibold flex items-center gap-2">
+                            {/* Icon placeholder */}
+                            <div className="w-4 h-4 bg-transparent border border-white/50 rounded-sm"></div>
+                            <span>{formProps?.caption || 'Form1'}</span>
+                        </div>
+                        <div className="flex gap-1">
+                            {formProps?.minButton !== false && (
+                                <div className="w-6 h-5 bg-gray-200 border border-gray-400 flex items-end justify-center pb-1 hover:bg-gray-300">
+                                    <div className="w-3 h-0.5 bg-black"></div>
+                                </div>
+                            )}
+                            {formProps?.maxButton !== false && (
+                                <div className="w-6 h-5 bg-gray-200 border border-gray-400 flex items-center justify-center hover:bg-gray-300">
+                                    <div className="w-3 h-3 border border-black border-t-2"></div>
+                                </div>
+                            )}
+                            {formProps?.controlBox !== false && (
+                                <div className="w-6 h-5 bg-red-100 border border-gray-400 flex items-center justify-center hover:bg-red-500 hover:text-white text-black font-bold text-xs">
+                                    X
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Canvas Area */}
+                    <div
+                        ref={canvasRef}
+                        style={{ ...style, width: `${canvasSize?.width || 800}px`, height: `${canvasSize?.height || 600}px`, position: 'relative' }}
+                        className="relative transition-all duration-200"
+                        onClick={(e) => e.stopPropagation()} // Prevent canvas click when clicking on the form area
+                    >
                         {elements.length === 0 && !activeTool && (
                             <div className="absolute inset-0 flex items-center justify-center text-gray-300 pointer-events-none">
                                 {t('canvas.no_elements')}

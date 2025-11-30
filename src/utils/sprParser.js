@@ -13,9 +13,9 @@ import { generateId, cleanString, capitalize } from './parserUtils';
  * @param {Function} setSelectedId - State setter for selection
  * @param {Function} setFormEvents - State setter for form events
  * @param {Function} setFormName - State setter for form name
- * @returns {Object} Parsed data { widgets, formEvents, formName, canvasSize }
+ * @param {Function} setFormProps - State setter for form properties (caption, etc.)
  */
-export const parseSPRContent = (text, setCanvasSize, setWidgets, setSelectedId, setFormEvents, setFormName) => {
+export const parseSPRContent = (text, setCanvasSize, setWidgets, setSelectedId, setFormEvents, setFormName, setFormProps) => {
     const lines = text.split('\n');
 
     // Initialize counters locally for this parse session
@@ -34,16 +34,22 @@ export const parseSPRContent = (text, setCanvasSize, setWidgets, setSelectedId, 
 
     const procedures = parseProcedures(lines);
 
-    const { newWidgets, finalFormEvents, formName, canvasSize } = parseWidgets(lines, procedures, getNextName);
+    const { newWidgets, finalFormEvents, formName, canvasSize, formTitle } = parseWidgets(lines, procedures, getNextName);
 
     setCanvasSize(canvasSize);
     setWidgets(newWidgets);
     setFormEvents(finalFormEvents);
     if (setFormName) setFormName(formName);
+
+    if (setFormProps && formTitle) {
+        setFormProps(prev => ({
+            ...prev,
+            caption: formTitle
+        }));
+    }
+
     setSelectedId(null);
     if (typeof console !== 'undefined') console.log(`Načteno ${newWidgets.length} prvků z SPR formátu.`);
-
-    return { widgets: newWidgets, formEvents: finalFormEvents, formName, canvasSize };
 };
 
 // --- Helper Functions ---
@@ -130,6 +136,7 @@ const parseWidgets = (lines, procedures, getNextName) => {
     const newWidgets = [];
     const finalFormEvents = {};
     let formName = 'Form1';
+    let formTitle = 'Form1';
     let formWidth = 800;
     let formHeight = 600;
 
@@ -157,6 +164,12 @@ const parseWidgets = (lines, procedures, getNextName) => {
                     formWidth = Math.round((col2 - col1 + 1) * COL_WIDTH);
                     formHeight = Math.round((row2 - row1 + 1) * ROW_HEIGHT);
                 }
+            }
+
+            // Extract Title
+            const titleMatch = cleanLine.match(/TITLE\s+(?:'|")(.+?)(?:'|")/i);
+            if (titleMatch) {
+                formTitle = titleMatch[1];
             }
         }
 
@@ -188,7 +201,7 @@ const parseWidgets = (lines, procedures, getNextName) => {
         }
     });
 
-    return { newWidgets, finalFormEvents, formName, canvasSize: { width: formWidth, height: formHeight } };
+    return { newWidgets, finalFormEvents, formName, canvasSize: { width: formWidth, height: formHeight }, formTitle };
 };
 
 const parseCoordinatesAndSize = (match) => {

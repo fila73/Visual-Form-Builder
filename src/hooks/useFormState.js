@@ -8,6 +8,12 @@ export const useFormState = () => {
     const [canvasSize, setCanvasSize] = useState({ width: 800, height: 600 });
     const [customMethods, setCustomMethods] = useState([]);
     const [formEvents, setFormEvents] = useState({});
+    const [formProps, setFormProps] = useState({
+        caption: 'Form1',
+        minButton: true,
+        maxButton: true,
+        controlBox: true
+    });
 
     // --- Actions ---
 
@@ -60,6 +66,10 @@ export const useFormState = () => {
         setSelectedIds(formElements.map(el => el.id));
     };
 
+    const updateFormProp = (key, value) => {
+        setFormProps(prev => ({ ...prev, [key]: value }));
+    };
+
     return {
         formElements,
         setFormElements,
@@ -76,6 +86,9 @@ export const useFormState = () => {
         updateWidgetProp,
         updateWidgetStyle,
         handleDelete,
-        handleSelectAll
+        handleSelectAll,
+        formProps,
+        setFormProps,
+        updateFormProp
     };
 };
