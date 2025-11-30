@@ -23,8 +23,8 @@
       "allow": [
         {
           "name": "python",
-          "args": true,
-          "sidecar": false
+          "cmd": "python",
+          "args": true
         }
       ]
     }

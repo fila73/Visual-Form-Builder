@@ -221,6 +221,10 @@ export const exportToPython = (widgets, customMethods, canvasSize, downloadFile,
         if (w.props.visible !== false) pyCode += `        self.${target}.place(x=${w.x}, y=${w.y}, width=${width}, height=${height})\n\n`;
     });
 
+    if (widgets.length === 0) {
+        pyCode += `        pass\n\n`;
+    }
+
     // Generate Event Handlers
     // 1. Form Events
     if (formEvents['Form1_Load']) {
