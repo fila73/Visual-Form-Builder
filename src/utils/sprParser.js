@@ -34,7 +34,7 @@ export const parseSPRContent = (text, setCanvasSize, setWidgets, setSelectedId, 
 
     const procedures = parseProcedures(lines);
 
-    const { newWidgets, finalFormEvents, formName, canvasSize, formTitle } = parseWidgets(lines, procedures, getNextName);
+    const { newWidgets, finalFormEvents, formName, canvasSize, formTitle, windowControls } = parseWidgets(lines, procedures, getNextName);
 
     setCanvasSize(canvasSize);
     setWidgets(newWidgets);
@@ -44,7 +44,11 @@ export const parseSPRContent = (text, setCanvasSize, setWidgets, setSelectedId, 
     if (setFormProps && formTitle) {
         setFormProps(prev => ({
             ...prev,
-            caption: formTitle
+            caption: formTitle,
+            minButton: windowControls.minimizable,
+            maxButton: windowControls.maximizable,
+            controlBox: windowControls.closable,
+            movable: windowControls.movable
         }));
     }
 
@@ -144,6 +148,13 @@ const parseWidgets = (lines, procedures, getNextName) => {
     const getPattern = /@\s*([\d\.]+)\s*,\s*([\d\.]+)\s+GET\s+(.*)/i;
     const windowPattern = /DEFINE\s+WINDOW\s+(\w+)/i;
 
+    let windowControls = {
+        closable: true,
+        minimizable: true,
+        maximizable: true,
+        movable: true
+    };
+
     lines.forEach(line => {
         const cleanLine = line.trim();
         if (!cleanLine || cleanLine.startsWith('*') || cleanLine.startsWith('PROCEDURE')) return;
@@ -165,6 +176,37 @@ const parseWidgets = (lines, procedures, getNextName) => {
                     formHeight = Math.round((row2 - row1 + 1) * ROW_HEIGHT);
                 }
             }
+
+            // --- NOVÁ LOGIKA PRO PARSOVÁNÍ VLASTNOSTÍ OKNA ---
+
+            // FoxPro logika: 
+            // 'SYSTEM' zapíná standardní vzhled (min/max/close), pokud nejsou explicitně zakázány.
+            // 'ZOOM' = Maximize tlačítko.
+            // 'FLOAT' = Okno lze přesouvat (Movable).
+
+            const hasSystem = /SYSTEM/i.test(cleanLine);
+
+            // Close (Křížek)
+            const explicitClose = /\bCLOSE\b/i.test(cleanLine);
+            const explicitNoClose = /\bNOCLOSE\b/i.test(cleanLine);
+            windowControls.closable = !explicitNoClose && (hasSystem || explicitClose);
+
+            // Minimize
+            const explicitMin = /\bMINIMIZE\b/i.test(cleanLine);
+            const explicitNoMin = /\bNOMINIMIZE\b/i.test(cleanLine);
+            windowControls.minimizable = !explicitNoMin && (hasSystem || explicitMin);
+
+            // Maximize (ve FoxPro jako ZOOM)
+            const explicitMax = /\bZOOM\b/i.test(cleanLine);
+            const explicitNoMax = /\bNOZOOM\b/i.test(cleanLine);
+            windowControls.maximizable = !explicitNoMax && (hasSystem || explicitMax);
+
+            // Movable (FLOAT vs NOFLOAT)
+            const explicitFloat = /\bFLOAT\b/i.test(cleanLine);
+            const explicitNoFloat = /\bNOFLOAT\b/i.test(cleanLine);
+            // Ve FoxPro je default často FLOAT, pokud není řečeno jinak, ale záleží na typu okna.
+            // Zde předpokládáme true, pokud není NOFLOAT.
+            windowControls.movable = !explicitNoFloat;
 
             // Extract Title
             const titleMatch = cleanLine.match(/TITLE\s+(?:'|")(.+?)(?:'|")/i);
@@ -201,7 +243,14 @@ const parseWidgets = (lines, procedures, getNextName) => {
         }
     });
 
-    return { newWidgets, finalFormEvents, formName, canvasSize: { width: formWidth, height: formHeight }, formTitle };
+    return {
+        newWidgets,
+        finalFormEvents,
+        formName,
+        canvasSize: { width: formWidth, height: formHeight },
+        formTitle,
+        windowControls
+    };
 };
 
 const parseCoordinatesAndSize = (match) => {

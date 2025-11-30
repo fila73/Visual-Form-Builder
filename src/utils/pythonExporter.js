@@ -57,8 +57,10 @@ export const exportToPython = (widgets, customMethods, canvasSize, downloadFile,
         pyCode += `        self.resizable(False, False)\n`;
     }
     if (formProps.controlBox === false) {
-        // pyCode += `        self.overrideredirect(True)\n`; // Removes title bar entirely
         pyCode += `        self.protocol("WM_DELETE_WINDOW", lambda: None)\n`; // Disable close button
+    }
+    if (formProps.movable === false) {
+        pyCode += `        self.overrideredirect(True)\n`;
     }
 
     pyCode += `        self.create_widgets()\n        self.init_custom()\n`;

@@ -201,20 +201,6 @@ const createWidgets = (objects, formMethods) => {
         if (mappedType && mappedType !== 'form') {
             const parentName = obj.parent;
             const offset = parentName ? getParentOffset(parentName) : { x: 0, y: 0 };
-
-            const registryItem = componentRegistry.find(c => c.type === mappedType);
-            const defaultProps = registryItem ? registryItem.defaultProps : {};
-
-            let parentId = null;
-            if (obj.parent) {
-                const parts = obj.parent.split('.');
-                const immediateParentName = parts[parts.length - 1];
-                const parentObj = objectsMap[immediateParentName];
-                if (parentObj && parentObj.baseClass !== 'form') {
-                    parentId = nameToIdMap[immediateParentName];
-                }
-            }
-
             let finalName = obj.objName;
             const nameExists = newWidgets.some(w => w.name === finalName);
             if (nameExists) {

@@ -268,6 +268,7 @@ const PropertiesPanel = ({
                                 <PropInput label={t('prop.min_button')} value={formProps?.minButton !== false} onChange={(v) => onUpdateFormProp('minButton', v === 'true' || v === true)} />
                                 <PropInput label={t('prop.max_button')} value={formProps?.maxButton !== false} onChange={(v) => onUpdateFormProp('maxButton', v === 'true' || v === true)} />
                                 <PropInput label={t('prop.control_box')} value={formProps?.controlBox !== false} onChange={(v) => onUpdateFormProp('controlBox', v === 'true' || v === true)} />
+                                <PropInput label={t('prop.movable')} value={formProps?.movable !== false} onChange={(v) => onUpdateFormProp('movable', v === 'true' || v === true)} />
                             </div>
                         </div>
 
