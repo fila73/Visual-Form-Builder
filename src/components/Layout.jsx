@@ -39,6 +39,7 @@ const Layout = () => {
     const [showSettings, setShowSettings] = useState(false);
     const [scaCharset, setScaCharset] = useState('windows-1250');
     const [sprCharset, setSprCharset] = useState('cp895');
+    const [runAfterExport, setRunAfterExport] = useState(false);
     const [activeModal, setActiveModal] = useState(null);
     const [editingCode, setEditingCode] = useState(null);
 
@@ -68,7 +69,8 @@ const Layout = () => {
         setCustomMethods, customMethods,
         setSelectedIds,
         scaCharset, sprCharset,
-        formProps, setFormProps
+        formProps, setFormProps,
+        runAfterExport
     });
 
     // 3. Clipboard
@@ -261,6 +263,8 @@ const Layout = () => {
                     onScaCharsetChange={setScaCharset}
                     sprCharset={sprCharset}
                     onSprCharsetChange={setSprCharset}
+                    runAfterExport={runAfterExport}
+                    onRunAfterExportChange={setRunAfterExport}
                 />
             }
 

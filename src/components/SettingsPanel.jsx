@@ -11,7 +11,9 @@ const SettingsPanel = ({
     scaCharset,
     onScaCharsetChange,
     sprCharset,
-    onSprCharsetChange
+    onSprCharsetChange,
+    runAfterExport,
+    onRunAfterExportChange
 }) => {
     const { language, setLanguage, t } = useLanguage();
 
@@ -76,6 +78,16 @@ const SettingsPanel = ({
                     <option value="windows-1252">System Default</option>
                 </select>
             </div>
+            <div className="h-6 w-px bg-gray-300 mx-2"></div>
+            <label className="flex items-center space-x-2 text-sm text-gray-700 cursor-pointer">
+                <input
+                    type="checkbox"
+                    checked={runAfterExport}
+                    onChange={(e) => onRunAfterExportChange(e.target.checked)}
+                    className="rounded text-blue-600 focus:ring-blue-500"
+                />
+                <span>{t('settings.run_after_export')}</span>
+            </label>
             <div className="h-6 w-px bg-gray-300 mx-2"></div>
             <div className="flex items-center space-x-2">
                 <Globe size={16} className="text-gray-600" />

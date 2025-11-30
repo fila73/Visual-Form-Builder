@@ -51,7 +51,11 @@ const translateVFPtoPython = (vfpCode) => {
 };
 
 export const exportToPython = (widgets, customMethods, canvasSize, downloadFile, formEvents = {}, formProps = {}) => {
-    let pyCode = `import tkinter as tk\nfrom tkinter import ttk\nfrom tkinter import messagebox\n\nclass Application(tk.Tk):\n    def __init__(self):\n        super().__init__()\n        self.geometry("${canvasSize.width}x${canvasSize.height}")\n        self.title("${formProps.caption || 'Form1'}")\n`;
+    let geometry = `${canvasSize.width}x${canvasSize.height}`;
+    if (formProps.x || formProps.y) {
+        geometry += `+${formProps.x || 0}+${formProps.y || 0}`;
+    }
+    let pyCode = `import tkinter as tk\nfrom tkinter import ttk\nfrom tkinter import messagebox\n\nclass Application(tk.Tk):\n    def __init__(self):\n        super().__init__()\n        self.geometry("${geometry}")\n        self.title("${formProps.caption || 'Form1'}")\n`;
 
     if (formProps.maxButton === false) {
         pyCode += `        self.resizable(False, False)\n`;

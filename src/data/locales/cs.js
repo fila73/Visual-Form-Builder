@@ -20,6 +20,7 @@ export const cs = {
     "settings.language": "Jazyk:",
     "settings.lang.cs": "Čeština",
     "settings.lang.en": "Angličtina",
+    "settings.run_after_export": "Spustit po exportu",
     "msg.confirm_delete_method": "Opravdu smazat metodu {name}?",
     "msg.confirm_new": "Opravdu chcete začít nový projekt? Všechny neuložené změny budou ztraceny.",
     "prop.name": "Název",

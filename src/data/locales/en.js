@@ -20,6 +20,7 @@ export const en = {
     "settings.language": "Language:",
     "settings.lang.cs": "Czech",
     "settings.lang.en": "English",
+    "settings.run_after_export": "Run after export",
     "msg.confirm_delete_method": "Really delete method {name}?",
     "msg.confirm_new": "Do you really want to start a new project? All unsaved changes will be lost.",
     "prop.name": "Name",

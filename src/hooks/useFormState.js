@@ -13,7 +13,9 @@ export const useFormState = () => {
         minButton: true,
         maxButton: true,
         controlBox: true,
-        movable: true
+        movable: true,
+        x: '',
+        y: ''
     });
 
     // --- Actions ---

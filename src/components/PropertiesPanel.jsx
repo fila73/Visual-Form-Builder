@@ -264,6 +264,10 @@ const PropertiesPanel = ({
                                 <PropInput label={t('prop.width')} value={canvasSize.width} onChange={(v) => onCanvasSizeChange({ ...canvasSize, width: parseInt(v) || 800 })} />
                                 <PropInput label={t('prop.height')} value={canvasSize.height} onChange={(v) => onCanvasSizeChange({ ...canvasSize, height: parseInt(v) || 600 })} />
                             </div>
+                            <div className="grid grid-cols-2 gap-2 mb-4">
+                                <PropInput label={t('prop.x')} value={formProps?.x || ''} onChange={(v) => onUpdateFormProp('x', v)} />
+                                <PropInput label={t('prop.y')} value={formProps?.y || ''} onChange={(v) => onUpdateFormProp('y', v)} />
+                            </div>
                             <div className="mb-4">
                                 <PropInput label={t('prop.min_button')} value={formProps?.minButton !== false} onChange={(v) => onUpdateFormProp('minButton', v === 'true' || v === true)} />
                                 <PropInput label={t('prop.max_button')} value={formProps?.maxButton !== false} onChange={(v) => onUpdateFormProp('maxButton', v === 'true' || v === true)} />

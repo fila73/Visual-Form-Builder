@@ -17,6 +17,16 @@
           "path": "**"
         }
       ]
+    },
+    {
+      "identifier": "shell:allow-execute",
+      "allow": [
+        {
+          "name": "python",
+          "args": true,
+          "sidecar": false
+        }
+      ]
     }
   ]
 }

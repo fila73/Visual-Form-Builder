@@ -1,6 +1,7 @@
 import { useRef } from 'react';
 import { save, ask } from '@tauri-apps/plugin-dialog';
 import { writeTextFile } from '@tauri-apps/plugin-fs';
+import { Command } from '@tauri-apps/plugin-shell';
 import { parseSCAContent } from '../utils/scaParser';
 import { parseSPRContent } from '../utils/sprParser';
 import { decodeText } from '../utils/charsetUtils';
@@ -15,7 +16,8 @@ export const useProjectIO = ({
     setCustomMethods, customMethods,
     setSelectedIds,
     scaCharset, sprCharset,
-    formProps, setFormProps
+    formProps, setFormProps,
+    runAfterExport
 }) => {
     const { t } = useLanguage();
     const fileInputRef = useRef(null);
@@ -112,6 +114,20 @@ export const useProjectIO = ({
                 try {
                     await writeTextFile(path, content);
                     console.log('Export úspěšný!');
+
+                    if (runAfterExport) {
+                        try {
+                            console.log('Spouštím po exportu:', path);
+                            // User requested: "python -m idlelib D:\Backups\App\fox\SKODA\BAK\ZAM00\ZDROJE\_R890BZS3Y.py"
+                            // We will use 'python' command with args.
+                            const command = Command.create('python', ['-m', 'idlelib', path]);
+                            const output = await command.execute();
+                            console.log('Output:', output);
+                        } catch (runErr) {
+                            console.error("Run failed:", runErr);
+                            alert("Chyba při spuštění: " + (typeof runErr === 'object' ? JSON.stringify(runErr) : runErr));
+                        }
+                    }
                 } catch (writeErr) {
                     console.error("Write failed:", writeErr);
                     alert("Chyba při zápisu: " + (typeof writeErr === 'object' ? JSON.stringify(writeErr) : writeErr));
