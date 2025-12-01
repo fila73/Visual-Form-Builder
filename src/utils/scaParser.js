@@ -43,6 +43,9 @@ export const parseSCAContent = (text, setCanvasSize, setWidgets, setSelectedId, 
             if (obj.props.movable !== undefined) extendedProps.movable = obj.props.movable;
             if (obj.props.controlbox !== undefined) extendedProps.movable = obj.props.controlbox; // controlbox interpretujeme jako movable - v pythonu oboji schová titulek okna
 
+            if (obj.props.left !== undefined) extendedProps.x = obj.props.left;
+            if (obj.props.top !== undefined) extendedProps.y = obj.props.top;
+
             formMethods = obj.methods;
         }
     });

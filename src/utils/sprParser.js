@@ -48,7 +48,9 @@ export const parseSPRContent = (text, setCanvasSize, setWidgets, setSelectedId, 
             minButton: windowControls.minimizable,
             maxButton: windowControls.maximizable,
             closable: windowControls.closable,
-            movable: windowControls.movable
+            movable: windowControls.movable,
+            x: windowControls.x,
+            y: windowControls.y
         }));
     }
 
@@ -152,7 +154,9 @@ const parseWidgets = (lines, procedures, getNextName) => {
         minimizable: true,
         maximizable: true,
         closable: true,
-        movable: true
+        movable: true,
+        x: 0,
+        y: 0
     };
 
     lines.forEach(line => {
@@ -171,9 +175,14 @@ const parseWidgets = (lines, procedures, getNextName) => {
                 const col1 = evalExpr(c1s);
                 const row2 = evalExpr(r2s);
                 const col2 = evalExpr(c2s);
-                if (!isNaN(row1) && !isNaN(col1) && !isNaN(row2) && !isNaN(col2)) {
-                    formWidth = Math.round((col2 - col1 + 1) * COL_WIDTH);
-                    formHeight = Math.round((row2 - row1 + 1) * ROW_HEIGHT);
+                if (!isNaN(row1) && !isNaN(col1)) {
+                    windowControls.x = Math.round(col1 * COL_WIDTH);
+                    windowControls.y = Math.round(row1 * ROW_HEIGHT);
+
+                    if (!isNaN(row2) && !isNaN(col2)) {
+                        formWidth = Math.round((col2 - col1 + 1) * COL_WIDTH);
+                        formHeight = Math.round((row2 - row1 + 1) * ROW_HEIGHT);
+                    }
                 }
             }
 
