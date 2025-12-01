@@ -1,10 +1,25 @@
-import React, { createContext, useState, useContext } from 'react';
+import React, { createContext, useState, useContext, useEffect } from 'react';
 import { translations } from '../data/translations';
+import { useSettings } from '../hooks/useSettings';
 
 const LanguageContext = createContext();
 
 export const LanguageProvider = ({ children }) => {
-    const [language, setLanguage] = useState('cs'); // Default to Czech
+    const [language, setLanguageState] = useState('cs'); // Default to Czech
+    const { getSetting, setSetting } = useSettings();
+
+    useEffect(() => {
+        const loadLang = async () => {
+            const savedLang = await getSetting('language', 'cs');
+            setLanguageState(savedLang);
+        };
+        loadLang();
+    }, []);
+
+    const setLanguage = (lang) => {
+        setLanguageState(lang);
+        setSetting('language', lang);
+    };
 
     const t = (key, params = {}) => {
         const langData = translations[language] || translations['cs'];

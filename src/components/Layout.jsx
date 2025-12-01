@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import Toolbar from './Toolbar';
 import Canvas from './Canvas';
 import CodeEditorModal from './modals/CodeEditorModal';
@@ -8,6 +8,7 @@ import PropertiesPanel from './PropertiesPanel';
 import SettingsPanel from './SettingsPanel';
 import useKeyboardShortcuts from '../hooks/useKeyboardShortcuts';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useSettings } from '../hooks/useSettings';
 
 // Hooks
 import { useFormState } from '../hooks/useFormState';
@@ -30,6 +31,7 @@ import { reparentElements } from '../utils/elementUtils';
  */
 const Layout = () => {
     const { t } = useLanguage();
+    const { getSetting, setSetting } = useSettings();
 
     // UI State
     const [activeTool, setActiveTool] = useState(null);
@@ -117,6 +119,53 @@ const Layout = () => {
         saveProjectRef,
         handleNewProjectRef
     });
+
+    // Load settings on mount
+    useEffect(() => {
+        const loadSettings = async () => {
+            const savedGridSize = await getSetting('gridSize', 10);
+            setGridSize(savedGridSize);
+
+            const savedShowGrid = await getSetting('showGrid', true);
+            setShowGrid(savedShowGrid);
+
+            const savedScaCharset = await getSetting('scaCharset', 'windows-1250');
+            setScaCharset(savedScaCharset);
+
+            const savedSprCharset = await getSetting('sprCharset', 'cp895');
+            setSprCharset(savedSprCharset);
+
+            const savedRunAfterExport = await getSetting('runAfterExport', false);
+            setRunAfterExport(savedRunAfterExport);
+        };
+        loadSettings();
+    }, []);
+
+    // Settings Handlers with Persistence
+    const handleGridSizeChange = (size) => {
+        setGridSize(size);
+        setSetting('gridSize', size);
+    };
+
+    const handleShowGridChange = (show) => {
+        setShowGrid(show);
+        setSetting('showGrid', show);
+    };
+
+    const handleScaCharsetChange = (charset) => {
+        setScaCharset(charset);
+        setSetting('scaCharset', charset);
+    };
+
+    const handleSprCharsetChange = (charset) => {
+        setSprCharset(charset);
+        setSetting('sprCharset', charset);
+    };
+
+    const handleRunAfterExportChange = (run) => {
+        setRunAfterExport(run);
+        setSetting('runAfterExport', run);
+    };
 
     // Tool Handlers
     const handleToolSelect = (tool) => {
@@ -256,15 +305,15 @@ const Layout = () => {
                 <SettingsPanel
                     show={showSettings}
                     gridSize={gridSize}
-                    onGridSizeChange={setGridSize}
+                    onGridSizeChange={handleGridSizeChange}
                     showGrid={showGrid}
-                    onShowGridChange={setShowGrid}
+                    onShowGridChange={handleShowGridChange}
                     scaCharset={scaCharset}
-                    onScaCharsetChange={setScaCharset}
+                    onScaCharsetChange={handleScaCharsetChange}
                     sprCharset={sprCharset}
-                    onSprCharsetChange={setSprCharset}
+                    onSprCharsetChange={handleSprCharsetChange}
                     runAfterExport={runAfterExport}
-                    onRunAfterExportChange={setRunAfterExport}
+                    onRunAfterExportChange={handleRunAfterExportChange}
                 />
             }
 
