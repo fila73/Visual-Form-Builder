@@ -63,7 +63,7 @@ export const exportToPython = (widgets, customMethods, canvasSize, downloadFile,
     if (formProps.minButton === false) {
         pyCode += `        self.attributes('-toolwindow', True)\n`;
     }
-    if (formProps.controlBox === false) {
+    if (formProps.closable === false) {
         pyCode += `        self.protocol("WM_DELETE_WINDOW", lambda: None)\n`;
     }
     if (formProps.movable === false) {

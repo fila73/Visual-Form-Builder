@@ -75,7 +75,7 @@ const Canvas = ({
                                     <div className="w-3 h-3 border border-black border-t-2"></div>
                                 </div>
                             )}
-                            {formProps?.controlBox !== false && (
+                            {formProps?.closable !== false && (
                                 <div className="w-6 h-5 bg-red-100 border border-gray-400 flex items-center justify-center hover:bg-red-500 hover:text-white text-black font-bold text-xs">
                                     X
                                 </div>
