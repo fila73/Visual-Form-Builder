@@ -90,5 +90,9 @@ export const cs = {
     "prop.no_methods": "Žádné metody",
     "prop.no_columns": "Žádné sloupce",
     "prop.columns": "Sloupce",
-    "prop.select_file": "Vybrat soubor"
+    "prop.select_file": "Vybrat soubor",
+    "prop.min_button": "Tlačítko minimalizovat",
+    "prop.max_button": "Tlačítko maximalizovat",
+    "prop.closable": "Tlačítko zavřít",
+    "prop.movable": "Pohyblivý"
 };

@@ -90,5 +90,9 @@ export const en = {
     "prop.no_methods": "No methods",
     "prop.no_columns": "No columns",
     "prop.columns": "Columns",
-    "prop.select_file": "Select File"
+    "prop.select_file": "Select File",
+    "prop.min_button": "Min Button",
+    "prop.max_button": "Max Button",
+    "prop.closable": "Closable",
+    "prop.movable": "Movable"
 };
