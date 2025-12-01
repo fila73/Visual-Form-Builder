@@ -24,7 +24,8 @@ export const parseSCAContent = (text, setCanvasSize, setWidgets, setSelectedId, 
         caption: 'Form1',
         minButton: true,
         maxButton: true,
-        controlBox: true
+        closable: true,
+        movable: true
     };
     let formMethods = {};
 
@@ -38,7 +39,9 @@ export const parseSCAContent = (text, setCanvasSize, setWidgets, setSelectedId, 
             if (obj.props.caption) extendedProps.caption = obj.props.caption;
             if (obj.props.minbutton !== undefined) extendedProps.minButton = obj.props.minbutton;
             if (obj.props.maxbutton !== undefined) extendedProps.maxButton = obj.props.maxbutton;
-            if (obj.props.controlbox !== undefined) extendedProps.controlBox = obj.props.controlbox; // Note: VFP uses ControlBox
+            if (obj.props.closable !== undefined) extendedProps.closable = obj.props.closable;
+            if (obj.props.movable !== undefined) extendedProps.movable = obj.props.movable;
+            if (obj.props.controlbox !== undefined) extendedProps.movable = obj.props.controlbox; // controlbox interpretujeme jako movable - v pythonu oboji schová titulek okna
 
             formMethods = obj.methods;
         }

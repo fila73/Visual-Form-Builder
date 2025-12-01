@@ -47,7 +47,7 @@ export const parseSPRContent = (text, setCanvasSize, setWidgets, setSelectedId, 
             caption: formTitle,
             minButton: windowControls.minimizable,
             maxButton: windowControls.maximizable,
-            controlBox: windowControls.closable,
+            closable: windowControls.closable,
             movable: windowControls.movable
         }));
     }
@@ -149,9 +149,9 @@ const parseWidgets = (lines, procedures, getNextName) => {
     const windowPattern = /DEFINE\s+WINDOW\s+(\w+)/i;
 
     let windowControls = {
-        closable: true,
         minimizable: true,
         maximizable: true,
+        closable: true,
         movable: true
     };
 

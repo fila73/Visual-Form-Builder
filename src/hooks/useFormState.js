@@ -12,7 +12,7 @@ export const useFormState = () => {
         caption: 'Form1',
         minButton: true,
         maxButton: true,
-        controlBox: true,
+        closable: true,
         movable: true,
         x: '',
         y: ''

@@ -205,7 +205,7 @@ export const useProjectIO = ({
             setFormEvents({});
             setFormName('Form1');
             setCanvasSize({ width: 800, height: 600 });
-            if (setFormProps) setFormProps({ caption: 'Form1', minButton: true, maxButton: true, controlBox: true, movable: true });
+            if (setFormProps) setFormProps({ caption: 'Form1', minButton: true, maxButton: true, closable: true, movable: true });
             setSelectedIds([]);
         }
     };
