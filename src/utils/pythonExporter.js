@@ -60,8 +60,11 @@ export const exportToPython = (widgets, customMethods, canvasSize, downloadFile,
     if (formProps.maxButton === false) {
         pyCode += `        self.resizable(False, False)\n`;
     }
+    if (formProps.minButton === false) {
+        pyCode += `        self.attributes('-toolwindow', True)\n`;
+    }
     if (formProps.controlBox === false) {
-        pyCode += `        self.protocol("WM_DELETE_WINDOW", lambda: None)\n`; // Disable close button
+        pyCode += `        self.protocol("WM_DELETE_WINDOW", lambda: None)\n`;
     }
     if (formProps.movable === false) {
         pyCode += `        self.overrideredirect(True)\n`;
