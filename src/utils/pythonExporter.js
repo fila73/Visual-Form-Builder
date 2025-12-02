@@ -13,13 +13,38 @@ const translateVFPtoPython = (vfpCode) => {
     py = py.replace(/THIS\./gi, 'self.');
 
     // Property access (basic heuristic)
-    // .Value -> .get() for input widgets (simplified)
-    py = py.replace(/\.Value/gi, '.get()');
+    // Distinguish between SET (assignment) and GET (access)
+
+    // .Caption
+    py = py.replace(/\.Caption\s*=\s*(.+)/gi, '["text"] = $1');
     py = py.replace(/\.Caption/gi, '.cget("text")');
+
+    // .Value (For Textbox/Editbox mainly)
+    // Note: Setting value on Entry/Text is complex in one line without helper.
+    // We will assume .get() for access. For assignment, we try to map to .insert if possible, but it's hard.
+    // For now, let's map .Value access to .get()
+    py = py.replace(/\.Value/gi, '.get()');
+
+    // .BackColor
+    py = py.replace(/\.BackColor\s*=\s*(.+)/gi, '["bg"] = $1');
+    py = py.replace(/\.BackColor/gi, '.cget("bg")');
+
+    // .ForeColor
+    py = py.replace(/\.ForeColor\s*=\s*(.+)/gi, '["fg"] = $1');
+    py = py.replace(/\.ForeColor/gi, '.cget("fg")');
+
+    // .Enabled
     py = py.replace(/\.Enabled\s*=\s*\.T\./gi, '.config(state="normal")');
+    py = py.replace(/\.Enabled\s*=\s*True/gi, '.config(state="normal")');
     py = py.replace(/\.Enabled\s*=\s*\.F\./gi, '.config(state="disabled")');
-    py = py.replace(/\.Visible\s*=\s*\.T\./gi, '.place()'); // Complex to handle perfectly, placeholder
+    py = py.replace(/\.Enabled\s*=\s*False/gi, '.config(state="disabled")');
+    // If assigning variable: .Enabled = var -> complex, skip for now or map to config(state=...)
+
+    // .Visible
+    py = py.replace(/\.Visible\s*=\s*\.T\./gi, '.place()');
+    py = py.replace(/\.Visible\s*=\s*True/gi, '.place()');
     py = py.replace(/\.Visible\s*=\s*\.F\./gi, '.place_forget()');
+    py = py.replace(/\.Visible\s*=\s*False/gi, '.place_forget()');
 
     // Control Structures
     py = py.replace(/IF\s+(.+)/gi, 'if $1:');
