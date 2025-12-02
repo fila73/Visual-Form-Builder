@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Activity, X, Save } from 'lucide-react';
 
 const CodeEditorModal = ({ isOpen, onClose, onSave, title, subTitle, initialCode }) => {
     const [code, setCode] = useState(initialCode || "");
+    const textareaRef = useRef(null);
+    const lineNumbersRef = useRef(null);
 
     useEffect(() => {
         setCode(initialCode || "");
@@ -25,6 +27,15 @@ const CodeEditorModal = ({ isOpen, onClose, onSave, title, subTitle, initialCode
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [isOpen, onClose, onSave, code]);
 
+    const handleScroll = () => {
+        if (textareaRef.current && lineNumbersRef.current) {
+            lineNumbersRef.current.scrollTop = textareaRef.current.scrollTop;
+        }
+    };
+
+    const lineCount = code.split('\n').length;
+    const lineNumbers = Array.from({ length: lineCount }, (_, i) => i + 1).join('\n');
+
     if (!isOpen) return null;
 
     return (
@@ -44,17 +55,29 @@ const CodeEditorModal = ({ isOpen, onClose, onSave, title, subTitle, initialCode
                         <X size={20} />
                     </button>
                 </div>
-                <div className="flex-1 flex flex-col bg-slate-50">
-                    <div className="bg-gray-200 px-4 py-1 text-[10px] text-gray-500 font-mono border-b border-gray-300">
+                <div className="flex-1 flex flex-col bg-slate-50 overflow-hidden">
+                    <div className="bg-gray-200 px-4 py-1 text-[10px] text-gray-500 font-mono border-b border-gray-300 shrink-0">
                         # Python kód (odsazení řešeno automaticky, pište zarovnané vlevo) | ESC = Zrušit | CTRL+ENTER = Uložit
                     </div>
-                    <textarea
-                        className="flex-1 w-full p-4 font-mono text-sm bg-[#1e1e1e] text-[#d4d4d4] resize-none focus:outline-none leading-relaxed"
-                        value={code}
-                        onChange={(e) => setCode(e.target.value)}
-                        spellCheck={false}
-                        placeholder="# Zde napište váš kód..."
-                    />
+                    <div className="flex-1 flex relative">
+                        <div
+                            ref={lineNumbersRef}
+                            className="bg-[#1e1e1e] text-[#606366] font-mono text-sm p-4 text-right select-none overflow-hidden border-r border-[#333]"
+                            style={{ width: '3rem', lineHeight: '1.625' }}
+                        >
+                            <pre>{lineNumbers}</pre>
+                        </div>
+                        <textarea
+                            ref={textareaRef}
+                            className="flex-1 w-full p-4 font-mono text-sm bg-[#1e1e1e] text-[#d4d4d4] resize-none focus:outline-none leading-relaxed whitespace-pre"
+                            value={code}
+                            onChange={(e) => setCode(e.target.value)}
+                            onScroll={handleScroll}
+                            spellCheck={false}
+                            placeholder="# Zde napište váš kód..."
+                            style={{ lineHeight: '1.625' }}
+                        />
+                    </div>
                 </div>
                 <div className="p-4 bg-gray-100 border-t border-gray-300 flex justify-end gap-3 shrink-0">
                     <button onClick={onClose} className="px-4 py-2 text-gray-600 hover:bg-gray-200 rounded text-sm font-medium transition">

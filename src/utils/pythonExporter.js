@@ -1,3 +1,5 @@
+import { VFPRuntimeCode } from './templates/VFPRuntime.js';
+
 const translateVFPtoPython = (vfpCode) => {
     if (!vfpCode) return "";
     let py = vfpCode;
@@ -55,7 +57,7 @@ export const exportToPython = (widgets, customMethods, canvasSize, downloadFile,
     if (formProps.x || formProps.y) {
         geometry += `+${formProps.x || 0}+${formProps.y || 0}`;
     }
-    let pyCode = `import tkinter as tk\nfrom tkinter import ttk\nfrom tkinter import messagebox\n\nclass Application(tk.Tk):\n    def __init__(self):\n        super().__init__()\n        self.geometry("${geometry}")\n        self.title("${formProps.caption || 'Form1'}")\n`;
+    let pyCode = `import tkinter as tk\nfrom tkinter import ttk\nfrom tkinter import messagebox\n\n${VFPRuntimeCode}\n\nclass Application(tk.Tk):\n    def __init__(self):\n        super().__init__()\n        self.geometry("${geometry}")\n        self.title("${formProps.caption || 'Form1'}")\n`;
 
     if (formProps.maxButton === false) {
         pyCode += `        self.resizable(False, False)\n`;
@@ -197,6 +199,12 @@ export const exportToPython = (widgets, customMethods, canvasSize, downloadFile,
             const bgParam = bg && bg !== 'transparent' ? `, bg="${bg}"` : '';
             pyCode += `        self.${n} = tk.Frame(${parentVar}${bgParam}, highlightbackground="#ccc", highlightthickness=1)\n`;
         }
+        else if (w.type === 'pageframe') {
+            pyCode += `        self.${n} = ttk.Notebook(${parentVar})\n`;
+        }
+        else if (w.type === 'page') {
+            pyCode += `        self.${n} = tk.Frame(${parentVar})\n        ${parentVar}.add(self.${n}, text="${p.caption || p.name}")\n`;
+        }
 
         const target = (w.type === 'grid') ? `${n}_frame` : (w.type === 'image' ? `${n}_lbl` : n);
         if (w.props.enabled === false) pyCode += `        try: self.${target}.config(state='disabled')\n        except: pass\n`;
@@ -221,7 +229,7 @@ export const exportToPython = (widgets, customMethods, canvasSize, downloadFile,
         if (initCode) pyCode += `        self.${n}_init()\n`;
 
 
-        if (w.props.visible !== false) pyCode += `        self.${target}.place(x=${w.x}, y=${w.y}, width=${width}, height=${height})\n\n`;
+        if (w.props.visible !== false && w.type !== 'page') pyCode += `        self.${target}.place(x=${w.x}, y=${w.y}, width=${width}, height=${height})\n\n`;
     });
 
     if (widgets.length === 0) {

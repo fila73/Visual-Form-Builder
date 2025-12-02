@@ -11,6 +11,9 @@ import ShapeWidget from './ShapeWidget';
 import ImageWidget from './ImageWidget';
 import ContainerWidget from './ContainerWidget';
 
+import PageFrameWidget from './PageFrameWidget';
+import PageWidget from './PageWidget';
+
 export const WIDGET_REGISTRY = {
     label: LabelWidget,
     textbox: TextBoxWidget,
@@ -23,5 +26,7 @@ export const WIDGET_REGISTRY = {
     grid: GridWidget,
     shape: ShapeWidget,
     image: ImageWidget,
-    container: ContainerWidget
+    container: ContainerWidget,
+    pageframe: PageFrameWidget,
+    page: PageWidget
 };

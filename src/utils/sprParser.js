@@ -1,5 +1,5 @@
 import { componentRegistry } from '../data/componentRegistry.js';
-import { generateId, cleanString, capitalize } from './parserUtils';
+import { generateId, cleanString, capitalize } from './parsers/parserCore.js';
 
 /**
  * Parses SPR (Screen Program) content and populates the form state.

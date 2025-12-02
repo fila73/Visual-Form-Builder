@@ -12,6 +12,8 @@ export const COMPONENT_TYPES = {
     SHAPE: 'shape',
     IMAGE: 'image',
     CONTAINER: 'container',
+    PAGE_FRAME: 'pageframe',
+    PAGE: 'page',
 };
 
 export const componentRegistry = [
@@ -186,6 +188,34 @@ export const componentRegistry = [
             width: 200,
             height: 200,
             style: { border: '1px dashed #ccc' },
+        },
+    },
+    {
+        type: COMPONENT_TYPES.PAGE_FRAME,
+        label: 'PageFrame',
+        icon: 'Layers',
+        defaultProps: {
+            name: 'PageFrame1',
+            visible: true,
+            enabled: true,
+            width: 300,
+            height: 200,
+            style: { border: '1px solid #ccc' },
+            pageCount: 2,
+        },
+    },
+    {
+        type: COMPONENT_TYPES.PAGE,
+        label: 'Page',
+        icon: 'File',
+        defaultProps: {
+            name: 'Page1',
+            caption: 'Page 1',
+            visible: true,
+            enabled: true,
+            width: 300,
+            height: 200,
+            style: {},
         },
     },
 ];

@@ -55,7 +55,9 @@ const Layout = () => {
         formEvents, setFormEvents,
         updateWidgetProp, updateWidgetStyle,
         handleDelete, handleSelectAll,
-        formProps, setFormProps, updateFormProp
+        formProps, setFormProps, updateFormProp,
+        handleAlign, handleZOrder,
+        undo, redo, canUndo, canRedo
     } = useFormState();
 
     // 2. Project I/O
@@ -323,6 +325,15 @@ const Layout = () => {
                     isToolLocked={isToolLocked}
                     onToolSelect={handleToolSelect}
                     onToolLock={handleToolLock}
+                    onAlign={handleAlign}
+                    onZOrder={handleZOrder}
+                    onCopy={copyToClipboard}
+                    onPaste={pasteFromClipboard}
+                    hasSelection={selectedIds.length > 0}
+                    onUndo={undo}
+                    onRedo={redo}
+                    canUndo={canUndo}
+                    canRedo={canRedo}
                 />
                 <Canvas
                     elements={formElements}

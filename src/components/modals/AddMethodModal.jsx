@@ -44,7 +44,9 @@ const AddMethodModal = ({ isOpen, onClose, onAdd }) => {
                             className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:border-blue-500 outline-none font-mono"
                             value={args}
                             onChange={(e) => setArgs(e.target.value)}
+                            placeholder="self, arg1, arg2"
                         />
+                        <div className="text-[10px] text-gray-400 mt-1">Vždy začněte s "self". Oddělujte čárkou.</div>
                     </div>
                 </div>
                 <div className="p-3 bg-gray-100 flex justify-end gap-2">

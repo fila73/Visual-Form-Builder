@@ -1,83 +1,86 @@
 import React from 'react';
-import { componentRegistry } from '../data/componentRegistry';
 import {
-    MousePointer2,
-    Lock,
-    Unlock,
-    Type,
-    Box,
-    FileText,
-    MousePointerClick,
-    CheckSquare,
-    CircleDot,
-    Hash,
-    List,
-    Grid,
-    Square,
-    Image,
-    Layout
+    AlignLeft, AlignCenter, AlignRight, AlignStartVertical, AlignEndVertical, AlignCenterVertical,
+    ArrowUpFromLine, ArrowDownFromLine, Layers, Copy, Clipboard, Undo, Redo
 } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 
-const iconMap = {
-    Type,
-    Box,
-    FileText,
-    MousePointerClick,
-    CheckSquare,
-    CircleDot,
-    Hash,
-    List,
-    Grid,
-    Square,
-    Image,
-    Layout
-};
-
-const Toolbar = ({ activeTool, isToolLocked, onToolSelect, onToolLock }) => {
+const Toolbar = ({
+    onAlign,
+    onDistribute,
+    onZOrder,
+    onUndo,
+    onRedo,
+    canUndo,
+    canRedo,
+    onCopy,
+    onPaste,
+    hasSelection
+}) => {
     const { t } = useLanguage();
+
+    const btnClass = "p-1.5 rounded hover:bg-gray-200 text-gray-700 disabled:opacity-30 disabled:cursor-not-allowed";
+    const separatorClass = "w-px h-6 bg-gray-300 mx-1";
+
     return (
-        <div className="w-12 bg-gray-50 border-r border-gray-200 flex flex-col items-center py-4 gap-2 z-10 overflow-y-auto scrollbar-hide">
-            {/* Cursor Tool */}
-            <button
-                onClick={() => onToolSelect(null)}
-                className={`p-2 rounded hover:bg-gray-200 ${!activeTool ? 'bg-blue-100 text-blue-600' : 'text-gray-600'}`}
-                title={t('toolbar.select')}
-            >
-                <MousePointer2 size={20} />
-            </button>
+        <div className="h-10 bg-white border-b border-gray-200 flex items-center px-2 shadow-sm z-10">
+            {/* Undo / Redo */}
+            <div className="flex items-center gap-1">
+                <button className={btnClass} onClick={onUndo} disabled={!canUndo} title={t('toolbar.undo')}>
+                    <Undo size={16} />
+                </button>
+                <button className={btnClass} onClick={onRedo} disabled={!canRedo} title={t('toolbar.redo')}>
+                    <Redo size={16} />
+                </button>
+            </div>
 
-            <div className="w-8 h-px bg-gray-300 my-1"></div>
+            <div className={separatorClass} />
 
-            {/* Component Tools */}
-            {componentRegistry.map((comp) => {
-                const Icon = iconMap[comp.icon] || Box;
-                return (
-                    <button
-                        key={comp.type}
-                        onClick={() => onToolSelect(comp.type)}
-                        onDoubleClick={() => onToolLock(comp.type)}
-                        className={`relative p-2 rounded hover:bg-gray-200 ${activeTool === comp.type ? 'bg-blue-100 text-blue-600' : 'text-gray-600'}`}
-                        title={comp.label}
-                    >
-                        <Icon size={20} />
-                        {activeTool === comp.type && isToolLocked && (
-                            <Lock size={10} className="absolute top-0.5 right-0.5 text-red-500" />
-                        )}
-                    </button>
-                );
-            })}
+            {/* Copy / Paste */}
+            <div className="flex items-center gap-1">
+                <button className={btnClass} onClick={onCopy} disabled={!hasSelection} title={t('toolbar.copy')}>
+                    <Copy size={16} />
+                </button>
+                <button className={btnClass} onClick={onPaste} title={t('toolbar.paste')}>
+                    <Clipboard size={16} />
+                </button>
+            </div>
 
-            <div className="flex-1"></div>
+            <div className={separatorClass} />
 
-            {/* Lock Tool */}
-            <button
-                onClick={() => activeTool && onToolLock(activeTool)}
-                className={`p-2 rounded hover:bg-gray-200 ${isToolLocked ? 'bg-red-100 text-red-600' : 'text-gray-400'}`}
-                title={isToolLocked ? t('toolbar.unlock') : t('toolbar.lock')}
-            >
-                {isToolLocked ? <Lock size={20} /> : <Unlock size={20} />}
-            </button>
+            {/* Alignment */}
+            <div className="flex items-center gap-1">
+                <button className={btnClass} onClick={() => onAlign('left')} disabled={!hasSelection} title={t('toolbar.align_left')}>
+                    <AlignLeft size={16} />
+                </button>
+                <button className={btnClass} onClick={() => onAlign('center')} disabled={!hasSelection} title={t('toolbar.align_center')}>
+                    <AlignCenter size={16} />
+                </button>
+                <button className={btnClass} onClick={() => onAlign('right')} disabled={!hasSelection} title={t('toolbar.align_right')}>
+                    <AlignRight size={16} />
+                </button>
+                <button className={btnClass} onClick={() => onAlign('top')} disabled={!hasSelection} title={t('toolbar.align_top')}>
+                    <AlignStartVertical size={16} />
+                </button>
+                <button className={btnClass} onClick={() => onAlign('middle')} disabled={!hasSelection} title={t('toolbar.align_middle')}>
+                    <AlignCenterVertical size={16} />
+                </button>
+                <button className={btnClass} onClick={() => onAlign('bottom')} disabled={!hasSelection} title={t('toolbar.align_bottom')}>
+                    <AlignEndVertical size={16} />
+                </button>
+            </div>
+
+            <div className={separatorClass} />
+
+            {/* Z-Order */}
+            <div className="flex items-center gap-1">
+                <button className={btnClass} onClick={() => onZOrder('front')} disabled={!hasSelection} title={t('toolbar.bring_front')}>
+                    <ArrowUpFromLine size={16} />
+                </button>
+                <button className={btnClass} onClick={() => onZOrder('back')} disabled={!hasSelection} title={t('toolbar.send_back')}>
+                    <ArrowDownFromLine size={16} />
+                </button>
+            </div>
         </div>
     );
 };
