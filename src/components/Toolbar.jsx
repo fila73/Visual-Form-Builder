@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-    AlignLeft, AlignCenter, AlignRight, AlignStartVertical, AlignEndVertical, AlignCenterVertical,
+    AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal, AlignStartVertical, AlignEndVertical, AlignCenterVertical,
     ArrowUpFromLine, ArrowDownFromLine, Layers, Copy, Clipboard, Undo, Redo
 } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -51,22 +51,22 @@ const Toolbar = ({
             {/* Alignment */}
             <div className="flex items-center gap-1">
                 <button className={btnClass} onClick={() => onAlign('left')} disabled={!hasSelection} title={t('toolbar.align_left')}>
-                    <AlignLeft size={16} />
-                </button>
-                <button className={btnClass} onClick={() => onAlign('center')} disabled={!hasSelection} title={t('toolbar.align_center')}>
-                    <AlignCenter size={16} />
-                </button>
-                <button className={btnClass} onClick={() => onAlign('right')} disabled={!hasSelection} title={t('toolbar.align_right')}>
-                    <AlignRight size={16} />
-                </button>
-                <button className={btnClass} onClick={() => onAlign('top')} disabled={!hasSelection} title={t('toolbar.align_top')}>
                     <AlignStartVertical size={16} />
                 </button>
-                <button className={btnClass} onClick={() => onAlign('middle')} disabled={!hasSelection} title={t('toolbar.align_middle')}>
+                <button className={btnClass} onClick={() => onAlign('center')} disabled={!hasSelection} title={t('toolbar.align_center')}>
                     <AlignCenterVertical size={16} />
                 </button>
-                <button className={btnClass} onClick={() => onAlign('bottom')} disabled={!hasSelection} title={t('toolbar.align_bottom')}>
+                <button className={btnClass} onClick={() => onAlign('right')} disabled={!hasSelection} title={t('toolbar.align_right')}>
                     <AlignEndVertical size={16} />
+                </button>
+                <button className={btnClass} onClick={() => onAlign('top')} disabled={!hasSelection} title={t('toolbar.align_top')}>
+                    <AlignStartHorizontal size={16} />
+                </button>
+                <button className={btnClass} onClick={() => onAlign('middle')} disabled={!hasSelection} title={t('toolbar.align_middle')}>
+                    <AlignCenterHorizontal size={16} />
+                </button>
+                <button className={btnClass} onClick={() => onAlign('bottom')} disabled={!hasSelection} title={t('toolbar.align_bottom')}>
+                    <AlignEndHorizontal size={16} />
                 </button>
             </div>
 
