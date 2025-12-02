@@ -15,7 +15,9 @@ import {
     Grid,
     Square,
     Image,
-    Layout
+    Layout,
+    File,
+    AppWindow
 } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 
@@ -31,7 +33,9 @@ const iconMap = {
     Grid,
     Square,
     Image,
-    Layout
+    Layout,
+    File,
+    AppWindow
 };
 
 const WidgetToolbar = ({ activeTool, isToolLocked, onToolSelect, onToolLock }) => {

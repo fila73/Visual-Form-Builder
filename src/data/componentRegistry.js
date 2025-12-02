@@ -193,7 +193,7 @@ export const componentRegistry = [
     {
         type: COMPONENT_TYPES.PAGE_FRAME,
         label: 'PageFrame',
-        icon: 'Layers',
+        icon: 'AppWindow',
         defaultProps: {
             name: 'PageFrame1',
             visible: true,
