@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { LazyStore } from '@tauri-apps/plugin-store';
+import { store as tauriStore } from '../services/tauri';
 
-const store = new LazyStore('settings.json');
+const store = new tauriStore.LazyStore('settings.json');
 
 export const useSettings = () => {
     const [settings, setSettings] = useState({});

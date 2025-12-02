@@ -1,7 +1,5 @@
 import { useRef } from 'react';
-import { save, ask } from '@tauri-apps/plugin-dialog';
-import { writeTextFile } from '@tauri-apps/plugin-fs';
-import { Command } from '@tauri-apps/plugin-shell';
+import { dialog, fs, shell } from '../services/tauri';
 import { parseSCAContent } from '../utils/scaParser';
 import { parseSPRContent } from '../utils/sprParser';
 import { decodeText } from '../utils/charsetUtils';
@@ -100,7 +98,7 @@ export const useProjectIO = ({
     const handleExportToPython = async () => {
         try {
             console.log("Opening save dialog for Python export...");
-            const path = await save({
+            const path = await dialog.save({
                 defaultPath: `${formName}.py`,
                 filters: [{
                     name: 'Python Script',
@@ -112,7 +110,7 @@ export const useProjectIO = ({
 
             const downloadFile = async (name, content, type) => {
                 try {
-                    await writeTextFile(path, content);
+                    await fs.writeTextFile(path, content);
                     console.log('Export úspěšný!');
 
                     if (runAfterExport) {
@@ -120,7 +118,7 @@ export const useProjectIO = ({
                             console.log('Spouštím po exportu:', path);
                             // User requested: "python -m idlelib D:\Backups\App\fox\SKODA\BAK\ZAM00\ZDROJE\_R890BZS3Y.py"
                             // We will use 'python' command with args.
-                            const command = Command.create('python', ['-m', 'idlelib', path]);
+                            const command = shell.Command.create('python', ['-m', 'idlelib', path]);
                             const output = await command.execute();
                             console.log('Output:', output);
                         } catch (runErr) {
@@ -144,7 +142,7 @@ export const useProjectIO = ({
     const saveProject = async () => {
         try {
             console.log("Opening save dialog for Project...");
-            const path = await save({
+            const path = await dialog.save({
                 defaultPath: `${formName}.json`,
                 filters: [{
                     name: 'JSON Project',
@@ -185,7 +183,7 @@ export const useProjectIO = ({
             });
 
             const data = JSON.stringify({ canvasSize, widgets: formElements, customMethods, formEvents: exportEvents, formName, formProps }, null, 2);
-            await writeTextFile(path, data);
+            await fs.writeTextFile(path, data);
             console.log('Projekt uložen!');
         } catch (error) {
             console.error("Save failed:", error);
@@ -194,7 +192,7 @@ export const useProjectIO = ({
     };
 
     const handleNewProject = async () => {
-        const answer = await ask(t('msg.confirm_new'), {
+        const answer = await dialog.ask(t('msg.confirm_new'), {
             title: t('btn.new'),
             kind: 'warning'
         });
