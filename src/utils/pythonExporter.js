@@ -45,9 +45,11 @@ const translateVFPtoPython = (vfpCode) => {
     py = py.replace(/\.OR\./gi, 'or');
     py = py.replace(/\.NOT\./gi, 'not');
     py = py.replace(/<>/g, '!=');
-    py = py.replace(/=/g, '=='); // Careful with assignment vs equality, this is risky but VFP uses = for both. 
-    // Contextual fix: if line starts with var =, it's assignment.
-    py = py.replace(/^(\s*\w+)\s*==\s*(.+)/gm, '$1 = $2'); // Revert assignment back to =
+    // Equality in comparisons (contextual)
+    // Default is assignment (=), but in IF/ELIF/WHILE we assume comparison (==)
+    py = py.replace(/^(\s*(?:if|elif|while)\s+)(.+)(:)/gmi, (match, start, content, end) => {
+        return start + content.replace(/(?<![<>!])=(?!=)/g, '==') + end;
+    });
 
     return py;
 };
