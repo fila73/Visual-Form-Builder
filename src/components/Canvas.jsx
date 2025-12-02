@@ -1,5 +1,6 @@
 import React from 'react';
 import FormElement from './FormElement';
+import Toolbar from './Toolbar';
 import { useLanguage } from '../contexts/LanguageContext';
 
 const Canvas = ({
@@ -17,7 +18,16 @@ const Canvas = ({
     drawingRect,
     activeTool,
     formName,
-    formProps
+    formProps,
+    onAlign,
+    onZOrder,
+    onCopy,
+    onPaste,
+    hasSelection,
+    onUndo,
+    onRedo,
+    canUndo,
+    canRedo
 }) => {
     const { t } = useLanguage();
     const style = {
@@ -55,6 +65,17 @@ const Canvas = ({
                 <span>{formName}: {canvasSize?.width || 800}x{canvasSize?.height || 600}px</span>
                 <span>{t('canvas.grid')} {showGrid ? `${gridSize}px` : 'Off'}</span>
             </div>
+            <Toolbar
+                onAlign={onAlign}
+                onZOrder={onZOrder}
+                onCopy={onCopy}
+                onPaste={onPaste}
+                hasSelection={hasSelection}
+                onUndo={onUndo}
+                onRedo={onRedo}
+                canUndo={canUndo}
+                canRedo={canRedo}
+            />
             <div className="flex-1 p-8 overflow-auto flex justify-center items-center bg-gray-500" onMouseDown={onCanvasMouseDown}>
                 <div className="shadow-lg flex flex-col">
                     {/* Window Title Bar */}

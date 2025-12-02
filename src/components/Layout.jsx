@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import Toolbar from './Toolbar';
+import WidgetToolbar from './WidgetToolbar';
 import Canvas from './Canvas';
 import CodeEditorModal from './modals/CodeEditorModal';
 import AddMethodModal from './modals/AddMethodModal';
@@ -320,20 +320,11 @@ const Layout = () => {
             }
 
             <div className="flex-1 flex relative overflow-hidden">
-                <Toolbar
+                <WidgetToolbar
                     activeTool={activeTool}
                     isToolLocked={isToolLocked}
                     onToolSelect={handleToolSelect}
                     onToolLock={handleToolLock}
-                    onAlign={handleAlign}
-                    onZOrder={handleZOrder}
-                    onCopy={copyToClipboard}
-                    onPaste={pasteFromClipboard}
-                    hasSelection={selectedIds.length > 0}
-                    onUndo={undo}
-                    onRedo={redo}
-                    canUndo={canUndo}
-                    canRedo={canRedo}
                 />
                 <Canvas
                     elements={formElements}
@@ -351,6 +342,15 @@ const Layout = () => {
                     activeTool={activeTool}
                     formName={formName}
                     formProps={formProps}
+                    onAlign={handleAlign}
+                    onZOrder={handleZOrder}
+                    onCopy={copyToClipboard}
+                    onPaste={pasteFromClipboard}
+                    hasSelection={selectedIds.length > 0}
+                    onUndo={undo}
+                    onRedo={redo}
+                    canUndo={canUndo}
+                    canRedo={canRedo}
                 />
                 <PropertiesPanel
                     selectedElement={selectedElement}
