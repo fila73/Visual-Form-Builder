@@ -36,7 +36,7 @@ const translateVFPtoPython = (vfpCode) => {
     py = py.replace(/NEXT/gi, '');
 
     // MessageBox
-    py = py.replace(/MESSAGEBOX\(([^,]+)(?:,\s*[^,]+)?(?:,\s*[^,]+)?\)/gi, 'messagebox.showinfo("Info", $1)');
+    py = py.replace(/MESSAGEBOX\(([^)]+)\)/gi, 'VFPRuntime.MessageBox($1)');
 
     // Logical operators
     py = py.replace(/\.T\./gi, 'True');

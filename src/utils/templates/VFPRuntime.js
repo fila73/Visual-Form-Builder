@@ -10,12 +10,24 @@ class VFPRuntime:
         Returns:
         1 = OK
         2 = Cancel
+        3 = Abort
+        4 = Retry
+        5 = Ignore
         6 = Yes
         7 = No
         """
         icon = "info"
         type_ = "ok"
         
+        # Return values
+        retval = {"ok": 1,
+                  "cancel": 2,
+                  "abort": 3,
+                  "retry": 4,
+                  "ignore": 5,
+                  "yes": 6,
+                  "no": 7
+                 }
         # Icons
         if flags & 16: icon = "error"      # Stop
         elif flags & 32: icon = "question" # Question
@@ -23,26 +35,14 @@ class VFPRuntime:
         elif flags & 64: icon = "info"     # Information
         
         # Buttons
-        if flags & 4: type_ = "yesno"
-        elif flags & 1: type_ = "okcancel"
-        elif flags & 2: type_ = "abortretryignore" # Not fully supported in simple mapping
-        elif flags & 3: type_ = "yesnocancel"
-        elif flags & 5: type_ = "retrycancel"
-        
-        if type_ == "yesno":
-            return 6 if messagebox.askyesno(title, text, icon=icon) else 7
-        elif type_ == "okcancel":
-            return 1 if messagebox.askokcancel(title, text, icon=icon) else 2
-        elif type_ == "yesnocancel":
-            res = messagebox.askyesnocancel(title, text, icon=icon)
-            if res is True: return 6
-            if res is False: return 7
-            return 2
-        elif type_ == "retrycancel":
-            return 4 if messagebox.askretrycancel(title, text, icon=icon) else 2
-        else:
-            messagebox.showinfo(title, text, icon=icon)
-            return 1
+        flags = flags%16
+        if flags == 1: type_ = "okcancel"
+        elif flags == 2: type_ = "abortretryignore"
+        elif flags == 3: type_ = "yesnocancel"
+        elif flags == 4: type_ = "yesno"
+        elif flags == 5: type_ = "retrycancel"
+
+        return retval.get(messagebox.askquestion(title, text, type = type_, icon=icon))
 
     @staticmethod
     def RGB(r, g, b):
