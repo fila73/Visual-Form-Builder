@@ -84,7 +84,7 @@ export const exportToPython = (widgets, customMethods, canvasSize, downloadFile,
     if (formProps.x || formProps.y) {
         geometry += `+${formProps.x || 0}+${formProps.y || 0}`;
     }
-    let pyCode = `import tkinter as tk\nfrom tkinter import ttk\nfrom tkinter import messagebox\n\n${VFPRuntimeCode}\n\nclass Application(tk.Tk):\n    def __init__(self):\n        super().__init__()\n        self.geometry("${geometry}")\n        self.title("${formProps.caption || 'Form1'}")\n`;
+    let pyCode = `import tkinter as tk\nfrom tkinter import messagebox\n\n${VFPRuntimeCode}\n\nclass Application(tk.Tk):\n    def __init__(self):\n        super().__init__()\n        self.geometry("${geometry}")\n        self.title("${formProps.caption || 'Form1'}")\n`;
 
     if (formProps.maxButton === false) {
         pyCode += `        self.resizable(False, False)\n`;

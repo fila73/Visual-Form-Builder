@@ -1,7 +1,4 @@
 export const VFPRuntimeCode = `
-import tkinter as tk
-from tkinter import messagebox
-
 class VFPRuntime:
     @staticmethod
     def MessageBox(text, flags=0, title="Message"):
