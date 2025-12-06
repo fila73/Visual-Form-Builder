@@ -4,6 +4,7 @@ import { parseSCAContent } from '../utils/scaParser';
 import { parseSPRContent } from '../utils/sprParser';
 import { decodeText } from '../utils/charsetUtils';
 import { exportToPython } from '../utils/pythonExporter';
+import { exportToPython as exportToPythonPyQt } from '../utils/pythonExporterPyQt';
 import { useLanguage } from '../contexts/LanguageContext';
 
 export const useProjectIO = ({
@@ -15,7 +16,8 @@ export const useProjectIO = ({
     setSelectedIds,
     scaCharset, sprCharset,
     formProps, setFormProps,
-    runAfterExport
+    runAfterExport,
+    pythonFramework = 'tkinter'
 }) => {
     const { t } = useLanguage();
     const fileInputRef = useRef(null);
@@ -132,7 +134,11 @@ export const useProjectIO = ({
                 }
             };
 
-            exportToPython(formElements, customMethods, canvasSize, downloadFile, formEvents, formProps);
+            if (pythonFramework === 'pyqt') {
+                exportToPythonPyQt(formElements, customMethods, canvasSize, downloadFile, formEvents, formProps);
+            } else {
+                exportToPython(formElements, customMethods, canvasSize, downloadFile, formEvents, formProps);
+            }
         } catch (error) {
             console.error("Export failed:", error);
             alert("Chyba při exportu: " + (error.message || JSON.stringify(error)));

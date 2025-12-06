@@ -41,6 +41,7 @@ const Layout = () => {
     const [showSettings, setShowSettings] = useState(false);
     const [scaCharset, setScaCharset] = useState('windows-1250');
     const [sprCharset, setSprCharset] = useState('cp895');
+    const [pythonFramework, setPythonFramework] = useState('tkinter');
     const [runAfterExport, setRunAfterExport] = useState(false);
     const [activeModal, setActiveModal] = useState(null);
     const [editingCode, setEditingCode] = useState(null);
@@ -73,6 +74,7 @@ const Layout = () => {
         setCustomMethods, customMethods,
         setSelectedIds,
         scaCharset, sprCharset,
+        pythonFramework,
         formProps, setFormProps,
         runAfterExport
     });
@@ -137,6 +139,9 @@ const Layout = () => {
             const savedSprCharset = await getSetting('sprCharset', 'cp895');
             setSprCharset(savedSprCharset);
 
+            const savedPythonFramework = await getSetting('pythonFramework', 'tkinter');
+            setPythonFramework(savedPythonFramework);
+
             const savedRunAfterExport = await getSetting('runAfterExport', false);
             setRunAfterExport(savedRunAfterExport);
         };
@@ -162,6 +167,11 @@ const Layout = () => {
     const handleSprCharsetChange = (charset) => {
         setSprCharset(charset);
         setSetting('sprCharset', charset);
+    };
+
+    const handlePythonFrameworkChange = (framework) => {
+        setPythonFramework(framework);
+        setSetting('pythonFramework', framework);
     };
 
     const handleRunAfterExportChange = (run) => {
@@ -314,6 +324,8 @@ const Layout = () => {
                     onScaCharsetChange={handleScaCharsetChange}
                     sprCharset={sprCharset}
                     onSprCharsetChange={handleSprCharsetChange}
+                    pythonFramework={pythonFramework}
+                    onPythonFrameworkChange={handlePythonFrameworkChange}
                     runAfterExport={runAfterExport}
                     onRunAfterExportChange={handleRunAfterExportChange}
                 />

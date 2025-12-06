@@ -12,6 +12,8 @@ const SettingsPanel = ({
     onScaCharsetChange,
     sprCharset,
     onSprCharsetChange,
+    pythonFramework,
+    onPythonFrameworkChange,
     runAfterExport,
     onRunAfterExportChange
 }) => {
@@ -76,6 +78,18 @@ const SettingsPanel = ({
                     <option value="ibm850">CP850 (Latin 1)</option>
                     <option value="utf-8">UTF-8</option>
                     <option value="windows-1252">System Default</option>
+                </select>
+            </div>
+            <div className="h-6 w-px bg-gray-300 mx-2"></div>
+            <div className="flex items-center space-x-2">
+                <span className="text-sm font-medium text-gray-700">Python</span>
+                <select
+                    value={pythonFramework}
+                    onChange={(e) => onPythonFrameworkChange(e.target.value)}
+                    className="border border-gray-300 rounded px-2 py-1 text-sm bg-white text-gray-900 focus:outline-none focus:border-blue-500"
+                >
+                    <option value="tkinter">Tkinter</option>
+                    <option value="pyqt">PyQt6</option>
                 </select>
             </div>
             <div className="h-6 w-px bg-gray-300 mx-2"></div>
