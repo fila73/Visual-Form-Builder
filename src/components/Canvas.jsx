@@ -27,7 +27,8 @@ const Canvas = ({
     onUndo,
     onRedo,
     canUndo,
-    canRedo
+    canRedo,
+    onWidgetContextMenu
 }) => {
     const { t } = useLanguage();
     const style = {
@@ -123,7 +124,13 @@ const Canvas = ({
                             const renderElement = (el) => {
                                 const children = elements.filter(child => child.parentId === el.id);
                                 return (
-                                    <div key={el.id} className="absolute" style={{ left: el.x || 0, top: el.y || 0, width: el.props.width, height: el.props.height }} onClick={(e) => e.stopPropagation()}>
+                                    <div key={el.id} className="absolute" style={{ left: el.x || 0, top: el.y || 0, width: el.props.width, height: el.props.height }} onClick={(e) => e.stopPropagation()}
+                                        onContextMenu={(e) => {
+                                            if (onWidgetContextMenu) {
+                                                onWidgetContextMenu(e, el.id);
+                                            }
+                                        }}
+                                    >
                                         <div className="relative group p-0 cursor-move w-full h-full">
                                             <FormElement
                                                 element={el}

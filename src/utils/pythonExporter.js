@@ -138,6 +138,14 @@ export const exportToPython = (widgets, customMethods, canvasSize, downloadFile,
         const bg = style.backgroundColor || p.bg;
         const color = style.color || p.color;
 
+        // Helper to construct options string
+        const getOpts = (base = '') => {
+            let opts = base;
+            if (bg) opts += `, bg="${bg}"`;
+            if (color) opts += `, fg="${color}"`;
+            return opts;
+        };
+
         // Resolve Parent
         let parentVar = 'self';
         if (w.parentId && idToName[w.parentId]) {
@@ -145,10 +153,15 @@ export const exportToPython = (widgets, customMethods, canvasSize, downloadFile,
         }
 
         pyCode += `        # ${n} (${w.type})\n`;
-        if (w.type === 'label') pyCode += `        self.${n} = tk.Label(${parentVar}, text="${p.text}", fg="${color}")\n`;
+        if (w.type === 'label') {
+            const opts = getOpts(`text="${p.text}"`);
+            pyCode += `        self.${n} = tk.Label(${parentVar}, ${opts})\n`;
+        }
         else if (w.type === 'textbox') { pyCode += `        self.${n} = tk.Entry(${parentVar})\n`; if (p.text) pyCode += `        self.${n}.insert(0, "${p.text}")\n`; }
         else if (w.type === 'button') {
-            let opts = `text="${p.text}", bg="${bg}"`;
+            let opts = `text="${p.text}"`;
+            if (bg) opts += `, bg="${bg}"`;
+            if (color) opts += `, fg="${color}"`;
             if (p.enabled === false || p.disabled) opts += `, state="disabled"`;
             if (p.default) opts += `, default="active"`;
             if (p.hotkey && p.text) {
@@ -187,6 +200,25 @@ export const exportToPython = (widgets, customMethods, canvasSize, downloadFile,
             if (p.hotkey) {
                 pyCode += `        self.bind('<Alt-${p.hotkey.toLowerCase()}>', lambda e: self.${n}.invoke())\n`;
                 pyCode += `        self.bind('<Alt-${p.hotkey.toUpperCase()}>', lambda e: self.${n}.invoke())\n`;
+            }
+        }
+        else if (w.type === 'optiongroup') {
+            let opts = `text="${p.label}"`;
+            let bgParam = bg ? `, bg="${bg}"` : '';
+            if (color) opts += `, fg="${color}"`;
+            pyCode += `        self.${n} = tk.LabelFrame(${parentVar}, ${opts}${bgParam})\n`;
+
+            // Variable to hold selection
+            pyCode += `        self.${n}_var = tk.IntVar(value=${p.value !== undefined ? p.value : 0})\n`;
+
+            if (p.options && Array.isArray(p.options)) {
+                p.options.forEach((opt, idx) => {
+                    const label = (typeof opt === 'object' && opt !== null) ? (opt.caption || '') : opt;
+                    const val = (typeof opt === 'object' && opt !== null && opt.value !== undefined) ? opt.value : idx;
+                    let rOptions = `text="${label}", variable=self.${n}_var, value=${val}`;
+                    if (bg) rOptions += `, bg="${bg}"`; // Inherit bg? usually yes
+                    pyCode += `        tk.Radiobutton(self.${n}, ${rOptions}).pack(anchor='w')\n`;
+                });
             }
         }
         else if (w.type === 'combobox') pyCode += `        self.${n} = ttk.Combobox(${parentVar}, values=[${p.options ? p.options.map(i => `"${i.trim()}"`).join(', ') : ''}])\n`;

@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import WidgetToolbar from './WidgetToolbar';
 import Canvas from './Canvas';
+import ContextMenu from './ContextMenu';
 import CodeEditorModal from './modals/CodeEditorModal';
 import AddMethodModal from './modals/AddMethodModal';
 import TopBar from './TopBar';
@@ -16,6 +17,8 @@ import { useClipboard } from '../hooks/useClipboard';
 import { useProjectIO } from '../hooks/useProjectIO';
 import { useCanvasInteraction } from '../hooks/useCanvasInteraction';
 import { reparentElements } from '../utils/elementUtils';
+import { componentRegistry } from '../data/componentRegistry';
+import { RotateCcw } from 'lucide-react';
 
 /**
  * Main Layout component for the Visual Form Builder.
@@ -45,6 +48,7 @@ const Layout = () => {
     const [runAfterExport, setRunAfterExport] = useState(false);
     const [activeModal, setActiveModal] = useState(null);
     const [editingCode, setEditingCode] = useState(null);
+    const [contextMenu, setContextMenu] = useState(null);
 
     // 1. Form State
     const {
@@ -278,8 +282,76 @@ const Layout = () => {
 
     const selectedElement = getSelectedElementData();
 
+    const handleResetWidget = () => {
+        if (selectedIds.length === 0) return;
+
+        setFormElements(prev => prev.map(el => {
+            if (!selectedIds.includes(el.id)) return el;
+
+            const defaults = componentRegistry.find(c => c.type === el.type)?.defaultProps;
+            if (!defaults) return el;
+
+            // Preserve mandatory props and ID
+            const newProps = {
+                ...defaults,
+                name: el.props.name // Keep existing name
+            };
+
+            return {
+                ...el,
+                props: newProps
+            };
+        }));
+    };
+
+    // Widget specific context menu (handles selection)
+    const handleWidgetContextMenu = (e, widgetId) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        let currentSelection = selectedIds;
+        if (!selectedIds.includes(widgetId)) {
+            setSelectedIds([widgetId]);
+            currentSelection = [widgetId];
+        }
+
+        const options = [];
+        options.push({ label: t('btn.copy') || 'Kopírovat', action: copyToClipboard, shortcut: 'Ctrl+C' });
+        options.push({ label: t('btn.cut') || 'Vyjmout', action: cutToClipboard, shortcut: 'Ctrl+X' });
+        options.push({ label: t('btn.delete') || 'Smazat', action: handleDelete, shortcut: 'Delete' });
+        options.push({ type: 'separator' });
+        options.push({
+            label: t('btn.reset_widget') || 'Reset Widget',
+            action: handleResetWidget,
+            icon: <RotateCcw size={14} />
+        });
+
+        setContextMenu({ x: e.clientX, y: e.clientY, options });
+    };
+
+    // Context Menu Handler
+    const handleContextMenu = (e) => {
+        e.preventDefault();
+
+        const options = [];
+        const hasSelection = selectedIds.length > 0;
+
+        // Basic Clipboard Actions
+        if (hasSelection) {
+            options.push({ label: t('btn.copy') || 'Kopírovat', action: copyToClipboard, shortcut: 'Ctrl+C' });
+            options.push({ label: t('btn.cut') || 'Vyjmout', action: cutToClipboard, shortcut: 'Ctrl+X' });
+            options.push({ label: t('btn.delete') || 'Smazat', action: handleDelete, shortcut: 'Delete' });
+            options.push({ type: 'separator' });
+            options.push({
+                label: t('btn.reset_widget') || 'Reset Widget',
+                action: handleResetWidget,
+                icon: <RotateCcw size={14} />
+            });
+        }
+    };
+
     return (
-        <div className="flex flex-col h-screen w-screen overflow-hidden" onContextMenu={(e) => e.preventDefault()}>
+        <div className="flex flex-col h-screen w-screen overflow-hidden" onContextMenu={handleContextMenu}>
             <input type="file" ref={fileInputRef} className="hidden" accept=".json" onChange={handleLoadProject} />
             <input type="file" ref={fileInputScaRef} className="hidden" accept=".sca,.txt" onChange={handleImportSCA} />
             <input type="file" ref={fileInputSprRef} className="hidden" accept=".spr" onChange={handleImportSPR} />
@@ -301,6 +373,14 @@ const Layout = () => {
             />
 
             {/* Header */}
+            {contextMenu && (
+                <ContextMenu
+                    x={contextMenu.x}
+                    y={contextMenu.y}
+                    options={contextMenu.options}
+                    onClose={() => setContextMenu(null)}
+                />
+            )}
             <TopBar
                 onNew={handleNewProject}
                 onLoad={() => fileInputRef.current.click()}
@@ -363,6 +443,7 @@ const Layout = () => {
                     onRedo={redo}
                     canUndo={canUndo}
                     canRedo={canRedo}
+                    onWidgetContextMenu={handleWidgetContextMenu}
                 />
                 <PropertiesPanel
                     selectedElement={selectedElement}

@@ -99,96 +99,129 @@ export const useCanvasInteraction = ({
                     const width = Math.abs(currentX - startX);
                     const height = Math.abs(currentY - startY);
 
-                    if (width > 5 && height > 5) {
-                        const component = componentRegistry.find(c => c.type === activeTool);
-                        if (component) {
-                            // Generate Unique Name
-                            const getUniqueName = (type, elements) => {
-                                const baseNameMap = {
-                                    'label': 'Label',
-                                    'textbox': 'Text',
-                                    'editbox': 'Edit',
-                                    'button': 'Command',
-                                    'checkbox': 'Check',
-                                    'radio': 'Option',
-                                    'spinner': 'Spinner',
-                                    'combobox': 'Combo',
-                                    'grid': 'Grid',
-                                    'shape': 'Shape',
-                                    'image': 'Image',
-                                    'container': 'Container'
-                                };
-                                const base = baseNameMap[type] || 'Object';
-                                let counter = 1;
-                                while (true) {
-                                    const name = `${base}${counter}`;
-                                    const exists = elements.some(el => (el.props.name || el.name) === name);
-                                    if (!exists) return name;
-                                    counter++;
-                                }
+                    // Decide if this is a drag-create or click-create
+                    const isDrag = width > 5 && height > 5;
+
+                    const component = componentRegistry.find(c => c.type === activeTool);
+                    if (component) {
+                        // Generate Unique Name
+                        const getUniqueName = (type, elements) => {
+                            const baseNameMap = {
+                                'label': 'Label',
+                                'textbox': 'Text',
+                                'editbox': 'Edit',
+                                'button': 'Command',
+                                'checkbox': 'Check',
+                                'radio': 'Option',
+                                'spinner': 'Spinner',
+                                'combobox': 'Combo',
+                                'grid': 'Grid',
+                                'shape': 'Shape',
+                                'image': 'Image',
+                                'container': 'Container',
+                                'pageframe': 'PageFrame',
+                                'page': 'Page'
                             };
+                            const base = baseNameMap[type] || 'Object';
+                            let counter = 1;
+                            while (true) {
+                                const name = `${base}${counter}`;
+                                const exists = elements.some(el => (el.props.name || el.name) === name);
+                                if (!exists) return name;
+                                counter++;
+                            }
+                        };
 
-                            const uniqueName = getUniqueName(component.type, formElements);
+                        const uniqueName = getUniqueName(component.type, formElements);
+                        const defaultProps = { ...component.defaultProps };
 
-                            const newWidget = {
-                                id: `obj_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
-                                type: component.type,
-                                props: { ...component.defaultProps, width, height, name: uniqueName },
-                                x: Math.round(x / gridSize) * gridSize,
-                                y: Math.round(y / gridSize) * gridSize
+                        // Set text/label/caption to uniqueName for specific types
+                        if (['label', 'button', 'checkbox', 'radio'].includes(component.type)) {
+                            if (component.type === 'label' || component.type === 'button') defaultProps.text = uniqueName;
+                            if (component.type === 'checkbox' || component.type === 'radio') defaultProps.label = uniqueName;
+                        }
+                        if (component.type === 'page') defaultProps.caption = uniqueName;
+
+                        // Calculate dynamic width if creating via click (default size)
+                        let finalWidth = isDrag ? width : (defaultProps.width || 100);
+                        let finalHeight = isDrag ? height : (defaultProps.height || 20);
+
+                        if (!isDrag && ['label', 'button', 'checkbox', 'radio'].includes(component.type)) {
+                            const textLen = uniqueName.length;
+                            // Approximate width calculations
+                            if (component.type === 'label') finalWidth = Math.max(20, textLen * 8);
+                            else if (component.type === 'button') finalWidth = Math.max(40, textLen * 8 + 16);
+                            else if (component.type === 'checkbox') finalWidth = Math.max(20, textLen * 8 + 24);
+                            else if (component.type === 'radio') finalWidth = Math.max(20, textLen * 8 + 24);
+                        }
+
+                        const newWidget = {
+                            id: `obj_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+                            type: component.type,
+                            props: { ...defaultProps, width: finalWidth, height: finalHeight, name: uniqueName },
+                            x: Math.round(x / gridSize) * gridSize,
+                            y: Math.round(y / gridSize) * gridSize
+                        };
+
+                        // Check for nesting on creation
+                        const getAbsoluteBounds = (elements) => {
+                            const bounds = {};
+                            const compute = (elId, xOffset, yOffset) => {
+                                const el = elements.find(e => e.id === elId);
+                                if (!el) return;
+                                const absX = xOffset + el.x;
+                                const absY = yOffset + el.y;
+                                bounds[el.id] = { x: absX, y: absY, w: el.props.width, h: el.props.height, el };
+                                elements.filter(c => c.parentId === el.id).forEach(child => compute(child.id, absX, absY));
                             };
+                            elements.filter(e => !e.parentId).forEach(root => compute(root.id, 0, 0));
+                            return bounds;
+                        };
 
-                            // Check for nesting on creation
-                            const getAbsoluteBounds = (elements) => {
-                                const bounds = {};
-                                const compute = (elId, xOffset, yOffset) => {
-                                    const el = elements.find(e => e.id === elId);
-                                    if (!el) return;
-                                    const absX = xOffset + el.x;
-                                    const absY = yOffset + el.y;
-                                    bounds[el.id] = { x: absX, y: absY, w: el.props.width, h: el.props.height, el };
-                                    elements.filter(c => c.parentId === el.id).forEach(child => compute(child.id, absX, absY));
-                                };
-                                elements.filter(e => !e.parentId).forEach(root => compute(root.id, 0, 0));
-                                return bounds;
-                            };
+                        const absBounds = getAbsoluteBounds(formElements);
+                        // For click-create, use the click coordinate (x,y) and finalWidth/Height
+                        const widgetRect = { x: newWidget.x, y: newWidget.y, w: finalWidth, h: finalHeight };
 
-                            const absBounds = getAbsoluteBounds(formElements);
-                            const widgetRect = { x: newWidget.x, y: newWidget.y, w: width, h: height };
+                        const contains = (container, rect) => {
+                            const cRight = container.x + (container.props.width || 0);
+                            const cBottom = container.y + (container.props.height || 0);
+                            const wRight = rect.x + rect.w;
+                            const wBottom = rect.y + rect.h;
+                            return (
+                                rect.x >= container.x &&
+                                rect.y >= container.y &&
+                                wRight <= cRight &&
+                                wBottom <= cBottom
+                            );
+                        };
 
-                            const contains = (container, rect) => {
-                                const cRight = container.x + (container.props.width || 0);
-                                const cBottom = container.y + (container.props.height || 0);
-                                const wRight = rect.x + rect.w;
-                                const wBottom = rect.y + rect.h;
-                                return (
-                                    rect.x >= container.x &&
-                                    rect.y >= container.y &&
-                                    wRight <= cRight &&
-                                    wBottom <= cBottom
-                                );
-                            };
-
-                            let bestParent = null;
-                            Object.values(absBounds).forEach(bound => {
-                                if (bound.el.type === 'container') {
+                        let bestParent = null;
+                        Object.values(absBounds).forEach(bound => {
+                            if (bound.el.type === 'container' || bound.el.type === 'page' || bound.el.type === 'shape') {
+                                // Allow dropping into container, page, or shape (if shape acts as container?)
+                                // Usually Shape is not a container in VFB but let's stick to 'container' type mostly.
+                                if (bound.el.type === 'container' || bound.el.type === 'page') {
                                     if (contains({ x: bound.x, y: bound.y, props: { width: bound.w, height: bound.h } }, widgetRect)) {
                                         if (!bestParent || (bound.w * bound.h < bestParent.w * bestParent.h)) {
                                             bestParent = bound;
                                         }
                                     }
                                 }
-                            });
-
-                            if (bestParent) {
-                                newWidget.parentId = bestParent.el.id;
-                                newWidget.x = widgetRect.x - bestParent.x;
-                                newWidget.y = widgetRect.y - bestParent.y;
                             }
+                        });
 
-                            setFormElements(prev => [...prev, newWidget]);
-                            setSelectedIds([newWidget.id]);
+                        if (bestParent) {
+                            newWidget.parentId = bestParent.el.id;
+                            newWidget.x = widgetRect.x - bestParent.x;
+                            newWidget.y = widgetRect.y - bestParent.y;
                         }
+
+                        setFormElements(prev => [...prev, newWidget]);
+                        setSelectedIds([newWidget.id]);
+
+                        // If radio group requested (virtual logic):
+                        // "RadioButtonGroup je skupina..." -> If user adds Radio, we did single. 
+                        // If we wanted to support 'Auto create group', we could do it here, but sticking to single per registry.
                     }
                 }
                 setDrawingRect(null);

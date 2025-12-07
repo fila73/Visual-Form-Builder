@@ -1,7 +1,9 @@
-import React from 'react';
-import { Zap, Plus, Edit, Trash2 } from 'lucide-react';
+import React, { useState } from 'react'; // Force reload
+
+import { Zap, Plus, Edit, Trash2, RotateCcw } from 'lucide-react';
 import PropInput from './PropInput';
 import PropertyGroup from './PropertyGroup';
+import ContextMenu from './ContextMenu';
 import { useLanguage } from '../contexts/LanguageContext';
 
 const PropertiesPanel = ({
@@ -25,6 +27,48 @@ const PropertiesPanel = ({
     onUpdateFormProp
 }) => {
     const { t } = useLanguage();
+    const [propContextMenu, setPropContextMenu] = useState(null);
+
+    const handlePropContextMenu = (e, propName, isStyle = false) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        setPropContextMenu({
+            x: e.clientX,
+            y: e.clientY,
+            options: [
+                {
+                    label: t('btn.reset') || 'Reset',
+                    action: () => {
+                        if (isStyle) onUpdateStyle(propName, undefined); // or null
+                        else onUpdateProp(propName, undefined);
+                    },
+                    icon: <RotateCcw size={14} />
+                }
+            ]
+        });
+    };
+
+    // Helper to render property input with visual state
+    const renderProp = (label, value, onChange, propName, isStyle = false) => {
+        const isSet = value !== undefined && value !== null && value !== '';
+
+        return (
+            <div onContextMenu={(e) => handlePropContextMenu(e, propName, isStyle)} className="relative group">
+                <PropInput
+                    label={label}
+                    value={isSet ? value : `(${t('val.default') || 'Default'})`}
+                    onChange={onChange}
+                    className={!isSet ? 'text-gray-400 italic' : ''}
+                />
+                {isSet && (
+                    <div className="absolute right-0 top-0 bottom-0 flex items-center pr-8 pointer-events-none">
+                        <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
+                    </div>
+                )}
+            </div>
+        );
+    };
 
     const renderWidgetProperties = () => {
         if (!selectedElement) return null;
@@ -39,32 +83,110 @@ const PropertiesPanel = ({
                 {/* --- LAYOUT GROUP --- */}
                 <PropertyGroup title={t('prop.dimensions_position')}>
                     <div className="grid grid-cols-2 gap-2">
-                        <PropInput label={t('prop.x')} value={selectedElement.x} onChange={(v) => {
+                        {renderProp(t('prop.x'), selectedElement.x, (v) => {
                             const val = parseInt(v);
                             if (!isNaN(val)) onReparent(selectedIds, { x: val });
-                        }} />
-                        <PropInput label={t('prop.y')} value={selectedElement.y} onChange={(v) => {
+                        }, 'x')}
+                        {renderProp(t('prop.y'), selectedElement.y, (v) => {
                             const val = parseInt(v);
                             if (!isNaN(val)) onReparent(selectedIds, { y: val });
-                        }} />
-                        <PropInput label={t('prop.width')} value={selectedElement.props.width} onChange={(v) => onUpdateProp('width', parseInt(v) || 0)} />
-                        <PropInput label={t('prop.height')} value={selectedElement.props.height} onChange={(v) => onUpdateProp('height', parseInt(v) || 0)} />
+                        }, 'y')}
+                        {renderProp(t('prop.width'), selectedElement.props.width, (v) => onUpdateProp('width', parseInt(v) || 0), 'width')}
+                        {renderProp(t('prop.height'), selectedElement.props.height, (v) => onUpdateProp('height', parseInt(v) || 0), 'height')}
                     </div>
                 </PropertyGroup>
 
                 {/* --- DATA GROUP --- */}
                 <PropertyGroup title={t('prop.data')}>
-                    {selectedElement.props.text !== undefined && (
-                        <PropInput label={t('prop.text')} value={selectedElement.props.text} onChange={(v) => onUpdateProp('text', v)} />
-                    )}
-                    {selectedElement.props.value !== undefined && (
-                        <PropInput label={t('prop.value')} value={selectedElement.props.value} onChange={(v) => onUpdateProp('value', v)} />
-                    )}
-                    {selectedElement.props.caption !== undefined && (
-                        <PropInput label={t('prop.caption')} value={selectedElement.props.caption} onChange={(v) => onUpdateProp('caption', v)} />
-                    )}
-                    {selectedElement.props.label !== undefined && (
-                        <PropInput label={t('prop.label')} value={selectedElement.props.label} onChange={(v) => onUpdateProp('label', v)} />
+                    {selectedElement.props.text !== undefined && renderProp(t('prop.text'), selectedElement.props.text, (v) => onUpdateProp('text', v), 'text')}
+                    {selectedElement.props.value !== undefined && renderProp(t('prop.value'), selectedElement.props.value, (v) => onUpdateProp('value', v), 'value')}
+                    {selectedElement.props.caption !== undefined && renderProp(t('prop.caption'), selectedElement.props.caption, (v) => onUpdateProp('caption', v), 'caption')}
+                    {selectedElement.props.label !== undefined && renderProp(t('prop.label'), selectedElement.props.label, (v) => onUpdateProp('label', v), 'label')}
+
+                    {/* Options (ComboBox, OptionGroup) */}
+                    {(selectedElement.type === 'combobox' || selectedElement.type === 'optiongroup') && (
+                        <div className="mb-4 border border-gray-200 rounded p-2 bg-gray-50">
+                            <div className="flex items-center justify-between mb-2">
+                                <div className="text-[10px] font-bold text-gray-500 uppercase">{t('prop.options')}</div>
+                                <button
+                                    onClick={() => {
+                                        const currentOpts = Array.isArray(selectedElement.props.options) ? selectedElement.props.options : [];
+                                        if (selectedElement.type === 'optiongroup') {
+                                            onUpdateProp('options', [...currentOpts, { caption: `Option ${currentOpts.length + 1}`, value: currentOpts.length + 1 }]);
+                                        } else {
+                                            onUpdateProp('options', [...currentOpts, `Option ${currentOpts.length + 1}`]);
+                                        }
+                                    }}
+                                    className="p-1 bg-blue-100 text-blue-600 rounded hover:bg-blue-200"
+                                >
+                                    <Plus size={12} />
+                                </button>
+                            </div>
+                            <div className="space-y-1">
+                                {(Array.isArray(selectedElement.props.options) ? selectedElement.props.options : []).map((opt, idx) => {
+                                    // Handle both string and object options
+                                    const isObj = typeof opt === 'object' && opt !== null;
+                                    const val = isObj ? (opt.caption || '') : opt;
+                                    const itemValue = isObj ? opt.value : undefined;
+
+                                    return (
+                                        <div key={idx} className="flex flex-col gap-1 mb-1 border-b border-gray-200 pb-1 last:border-0">
+                                            <div className="flex gap-1">
+                                                <input
+                                                    className="flex-1 border rounded px-1 text-sm py-0.5"
+                                                    placeholder="Caption"
+                                                    value={val}
+                                                    onChange={(e) => {
+                                                        const newOpts = [...selectedElement.props.options];
+                                                        if (isObj) {
+                                                            newOpts[idx] = { ...newOpts[idx], caption: e.target.value };
+                                                        } else {
+                                                            newOpts[idx] = e.target.value;
+                                                        }
+                                                        onUpdateProp('options', newOpts);
+                                                    }}
+                                                />
+                                                <button
+                                                    onClick={() => {
+                                                        const newOpts = [...selectedElement.props.options];
+                                                        newOpts.splice(idx, 1);
+                                                        onUpdateProp('options', newOpts);
+                                                    }}
+                                                    className="text-red-500 hover:text-red-700 px-1"
+                                                >
+                                                    <Trash2 size={12} />
+                                                </button>
+                                            </div>
+                                            {selectedElement.type === 'optiongroup' && isObj && (
+                                                <div className="flex items-center gap-1 pl-1">
+                                                    <span className="text-[10px] text-gray-400 w-8">Val:</span>
+                                                    <input
+                                                        className="flex-1 border rounded px-1 text-xs py-0.5 bg-gray-50"
+                                                        placeholder="Value"
+                                                        value={itemValue !== undefined ? itemValue : ''}
+                                                        onChange={(e) => {
+                                                            const newOpts = [...selectedElement.props.options];
+                                                            // Keep as string or number? Usually number if inputs number.
+                                                            // But let's allow string values too.
+                                                            // Try parse int, if NaN use string
+                                                            let v = e.target.value;
+                                                            const i = parseInt(v);
+                                                            if (!isNaN(i) && String(i) === v) v = i;
+
+                                                            newOpts[idx] = { ...newOpts[idx], value: v };
+                                                            onUpdateProp('options', newOpts);
+                                                        }}
+                                                    />
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                                {(!Array.isArray(selectedElement.props.options) || selectedElement.props.options.length === 0) && (
+                                    <div className="text-center text-gray-400 italic py-2 text-xs">{t('prop.no_options')}</div>
+                                )}
+                            </div>
+                        </div>
                     )}
 
                     {/* Image Source */}
@@ -174,9 +296,10 @@ const PropertiesPanel = ({
                 <PropertyGroup title={t('prop.appearance')}>
                     <PropInput label={t('prop.visible')} value={selectedElement.props.visible !== false} onChange={(v) => onUpdateProp('visible', v === 'true' || v === true)} />
 
-                    <div className="mb-2">
+
+                    <div className="mb-2" onContextMenu={(e) => handlePropContextMenu(e, 'color', true)}>
                         <label className="text-[10px] font-bold text-gray-500 uppercase w-full block mb-1">{t('prop.color')}</label>
-                        <div className="flex gap-1">
+                        <div className="flex gap-1 relative group">
                             <input
                                 type="color"
                                 value={selectedElement.props.style?.color || '#000000'}
@@ -185,16 +308,21 @@ const PropertiesPanel = ({
                             />
                             <input
                                 type="text"
-                                value={selectedElement.props.style?.color || '#000000'}
+                                value={selectedElement.props.style?.color || ''}
+                                placeholder={t('val.default') || 'Default'}
                                 onChange={(e) => onUpdateStyle('color', e.target.value)}
                                 className="flex-1 border border-gray-300 rounded px-2 py-1 text-sm focus:border-blue-500 focus:outline-none"
                             />
+                            {selectedElement.props.style?.color && (
+                                <div className="absolute right-2 top-2 w-1.5 h-1.5 rounded-full bg-blue-500"></div>
+                            )}
                         </div>
                     </div>
 
-                    <div className="mb-2">
+
+                    <div className="mb-2" onContextMenu={(e) => handlePropContextMenu(e, 'backgroundColor', true)}>
                         <label className="text-[10px] font-bold text-gray-500 uppercase w-full block mb-1">{t('prop.back_color')}</label>
-                        <div className="flex gap-1">
+                        <div className="flex gap-1 relative group">
                             <input
                                 type="color"
                                 value={selectedElement.props.style?.backgroundColor || '#ffffff'}
@@ -203,18 +331,25 @@ const PropertiesPanel = ({
                             />
                             <input
                                 type="text"
-                                value={selectedElement.props.style?.backgroundColor || '#ffffff'}
+                                value={selectedElement.props.style?.backgroundColor || ''}
+                                placeholder={t('val.default') || 'Default'}
                                 onChange={(e) => onUpdateStyle('backgroundColor', e.target.value)}
                                 className="flex-1 border border-gray-300 rounded px-2 py-1 text-sm focus:border-blue-500 focus:outline-none"
                             />
+                            {selectedElement.props.style?.backgroundColor && (
+                                <div className="absolute right-2 top-2 w-1.5 h-1.5 rounded-full bg-blue-500"></div>
+                            )}
                         </div>
                     </div>
 
-                    <PropInput
-                        label={t('prop.font_size')}
-                        value={selectedElement.props.style?.fontSize || '14px'}
-                        onChange={(v) => onUpdateStyle('fontSize', v)}
-                    />
+                    <div onContextMenu={(e) => handlePropContextMenu(e, 'fontSize', true)}>
+                        <PropInput
+                            label={t('prop.font_size')}
+                            value={selectedElement.props.style?.fontSize || ''}
+                            placeholder={t('val.default') || 'Default'}
+                            onChange={(v) => onUpdateStyle('fontSize', v)}
+                        />
+                    </div>
 
                     {selectedElement.type === 'image' && (
                         <>
@@ -226,13 +361,13 @@ const PropertiesPanel = ({
 
                 {/* --- BEHAVIOR GROUP --- */}
                 <PropertyGroup title={t('prop.behavior')}>
-                    <PropInput label={t('prop.name')} value={selectedElement.props.name || ''} onChange={(v) => onUpdateProp('name', v)} />
-                    <PropInput label={t('prop.enabled')} value={selectedElement.props.enabled !== false} onChange={(v) => onUpdateProp('enabled', v === 'true' || v === true)} />
+                    {renderProp(t('prop.name'), selectedElement.props.name || '', (v) => onUpdateProp('name', v), 'name')}
+                    {renderProp(t('prop.enabled'), selectedElement.props.enabled !== false, (v) => onUpdateProp('enabled', v === 'true' || v === true), 'enabled')}
 
                     {selectedElement.type === 'button' && (
                         <>
-                            <PropInput label={t('prop.default')} value={selectedElement.props.default || false} onChange={(v) => onUpdateProp('default', v === 'true' || v === true)} />
-                            <PropInput label={t('prop.cancel')} value={selectedElement.props.cancel || false} onChange={(v) => onUpdateProp('cancel', v === 'true' || v === true)} />
+                            {renderProp(t('prop.default'), selectedElement.props.default || false, (v) => onUpdateProp('default', v === 'true' || v === true), 'default')}
+                            {renderProp(t('prop.cancel'), selectedElement.props.cancel || false, (v) => onUpdateProp('cancel', v === 'true' || v === true), 'cancel')}
                         </>
                     )}
 
@@ -354,6 +489,14 @@ const PropertiesPanel = ({
             <div className="flex-1 overflow-y-auto">
                 {selectedElement ? renderWidgetProperties() : renderFormProperties()}
             </div>
+            {propContextMenu && (
+                <ContextMenu
+                    x={propContextMenu.x}
+                    y={propContextMenu.y}
+                    options={propContextMenu.options}
+                    onClose={() => setPropContextMenu(null)}
+                />
+            )}
         </aside>
     );
 };

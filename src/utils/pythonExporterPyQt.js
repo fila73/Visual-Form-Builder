@@ -94,7 +94,8 @@ export const exportToPython = (widgets, customMethods, canvasSize, downloadFile,
     let pyCode = `import sys
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QLabel, QPushButton, 
                              QLineEdit, QTextEdit, QCheckBox, QRadioButton, QComboBox, 
-                             QFrame, QSpinBox, QTreeWidget, QTreeWidgetItem, QTabWidget, QMessageBox)
+                             QFrame, QSpinBox, QTreeWidget, QTreeWidgetItem, QTabWidget, QMessageBox,
+                             QGroupBox, QVBoxLayout)
 from PyQt6.QtCore import Qt
 
 ${VFPRuntimeCodePyQt}
@@ -191,6 +192,24 @@ class Application(QMainWindow):
         }
         else if (w.type === 'radio') {
             pyCode += `        self.${n} = QRadioButton("${p.label || ''}", ${parentVar})\n`;
+        }
+        else if (w.type === 'optiongroup') {
+            pyCode += `        self.${n} = QGroupBox("${p.label || ''}", ${parentVar})\n`;
+            // Add Layout
+            pyCode += `        self.${n}_layout = QVBoxLayout()\n`;
+            pyCode += `        self.${n}.setLayout(self.${n}_layout)\n`;
+
+            if (p.options && Array.isArray(p.options)) {
+                p.options.forEach((opt, idx) => {
+                    const label = (typeof opt === 'object' && opt !== null) ? (opt.caption || '') : opt;
+                    const val = (typeof opt === 'object' && opt !== null && opt.value !== undefined) ? opt.value : idx;
+
+                    pyCode += `        self.${n}_rb${idx} = QRadioButton("${label}")\n`;
+                    pyCode += `        self.${n}_layout.addWidget(self.${n}_rb${idx})\n`;
+                    if (p.value == val) pyCode += `        self.${n}_rb${idx}.setChecked(True)\n`;
+                });
+            }
+            pyCode += `        self.${n}_layout.addStretch()\n`; // Push items up
         }
         else if (w.type === 'combobox') {
             pyCode += `        self.${n} = QComboBox(${parentVar})\n`;

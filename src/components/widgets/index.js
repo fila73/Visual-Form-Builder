@@ -13,6 +13,7 @@ import ContainerWidget from './ContainerWidget';
 
 import PageFrameWidget from './PageFrameWidget';
 import PageWidget from './PageWidget';
+import OptionGroupWidget from './OptionGroupWidget';
 
 export const WIDGET_REGISTRY = {
     label: LabelWidget,
@@ -28,5 +29,6 @@ export const WIDGET_REGISTRY = {
     image: ImageWidget,
     container: ContainerWidget,
     pageframe: PageFrameWidget,
-    page: PageWidget
+    page: PageWidget,
+    optiongroup: OptionGroupWidget,
 };

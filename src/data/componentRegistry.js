@@ -14,6 +14,7 @@ export const COMPONENT_TYPES = {
     CONTAINER: 'container',
     PAGE_FRAME: 'pageframe',
     PAGE: 'page',
+    OPTION_GROUP: 'optiongroup',
 };
 
 export const componentRegistry = [
@@ -26,9 +27,9 @@ export const componentRegistry = [
             text: 'Label',
             visible: true,
             enabled: true,
-            width: 100,
-            height: 24,
-            style: { fontSize: '14px', color: '#000' },
+            width: 100, // Will be calculated dynamically
+            height: 17,
+            style: {},
         },
     },
     {
@@ -42,8 +43,8 @@ export const componentRegistry = [
             visible: true,
             enabled: true,
             width: 100,
-            height: 24,
-            style: { border: '1px solid #ccc' },
+            height: 23,
+            style: {},
         },
     },
     {
@@ -57,8 +58,8 @@ export const componentRegistry = [
             visible: true,
             enabled: true,
             width: 100,
-            height: 60,
-            style: { border: '1px solid #ccc' },
+            height: 53,
+            style: {},
         },
     },
     {
@@ -70,9 +71,9 @@ export const componentRegistry = [
             text: 'Button',
             visible: true,
             enabled: true,
-            width: 80,
-            height: 24,
-            style: { backgroundColor: '#f0f0f0', border: '1px solid #999' },
+            width: 80, // Will be calculated
+            height: 25,
+            style: {},
         },
     },
     {
@@ -85,24 +86,30 @@ export const componentRegistry = [
             checked: false,
             visible: true,
             enabled: true,
-            width: 100,
-            height: 24,
+            width: 100, // dynamic
+            height: 17,
             style: {},
         },
     },
+
     {
-        type: COMPONENT_TYPES.RADIO,
-        label: 'Radio',
+        type: COMPONENT_TYPES.OPTION_GROUP,
+        label: 'OptionGroup',
         icon: 'CircleDot',
         defaultProps: {
-            name: 'Option1',
-            label: 'Radio Button',
-            checked: false,
+            name: 'OptionGroup1',
+            label: 'Option Group',
+            options: [
+                { caption: 'Option 1', value: 1 },
+                { caption: 'Option 2', value: 2 }
+            ],
+            value: 0,
             visible: true,
             enabled: true,
-            width: 100,
-            height: 24,
-            style: {},
+            width: 120, // Will be autosized ideally
+            height: 70, // 2 items * 23px + margin
+            itemHeight: 23,
+            style: { border: '1px solid #999', padding: '5px' },
         },
     },
     {
@@ -145,7 +152,7 @@ export const componentRegistry = [
             enabled: true,
             width: 200,
             height: 150,
-            style: { border: '1px solid #ccc' },
+            style: {},
         },
     },
     {
@@ -187,7 +194,7 @@ export const componentRegistry = [
             enabled: true,
             width: 200,
             height: 200,
-            style: { border: '1px dashed #ccc' },
+            style: {},
         },
     },
     {
@@ -200,7 +207,7 @@ export const componentRegistry = [
             enabled: true,
             width: 300,
             height: 200,
-            style: { border: '1px solid #ccc' },
+            style: {},
             pageCount: 2,
         },
     },
