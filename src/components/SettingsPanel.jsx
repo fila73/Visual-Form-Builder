@@ -12,8 +12,8 @@ const SettingsPanel = ({
     onScaCharsetChange,
     sprCharset,
     onSprCharsetChange,
-    pythonFramework,
-    onPythonFrameworkChange,
+    exportFramework,
+    onExportFrameworkChange,
     runAfterExport,
     onRunAfterExportChange
 }) => {
@@ -82,14 +82,16 @@ const SettingsPanel = ({
             </div>
             <div className="h-6 w-px bg-gray-300 mx-2"></div>
             <div className="flex items-center space-x-2">
-                <span className="text-sm font-medium text-gray-700">Python</span>
+                <span className="text-sm font-medium text-gray-700">{t('settings.export')}</span>
                 <select
-                    value={pythonFramework}
-                    onChange={(e) => onPythonFrameworkChange(e.target.value)}
+                    value={exportFramework}
+                    onChange={(e) => onExportFrameworkChange(e.target.value)}
                     className="border border-gray-300 rounded px-2 py-1 text-sm bg-white text-gray-900 focus:outline-none focus:border-blue-500"
                 >
                     <option value="tkinter">Tkinter</option>
                     <option value="pyqt">PyQt6</option>
+                    <option value="winforms">WinForms</option>
+                    <option value="wpf">WPF</option>
                 </select>
             </div>
             <div className="h-6 w-px bg-gray-300 mx-2"></div>

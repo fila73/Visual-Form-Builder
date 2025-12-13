@@ -5,6 +5,7 @@ import { parseSPRContent } from '../utils/sprParser';
 import { decodeText } from '../utils/charsetUtils';
 import { exportToPython } from '../utils/pythonExporter';
 import { exportToPython as exportToPythonPyQt } from '../utils/pythonExporterPyQt';
+import { exportToPowerShellWinForms, exportToPowerShellWPF } from '../utils/powershellExporter';
 import { useLanguage } from '../contexts/LanguageContext';
 
 export const useProjectIO = ({
@@ -16,8 +17,7 @@ export const useProjectIO = ({
     setSelectedIds,
     scaCharset, sprCharset,
     formProps, setFormProps,
-    runAfterExport,
-    pythonFramework = 'tkinter'
+    exportFramework = 'tkinter'
 }) => {
     const { t } = useLanguage();
     const fileInputRef = useRef(null);
@@ -99,12 +99,16 @@ export const useProjectIO = ({
 
     const handleExportToPython = async () => {
         try {
-            console.log("Opening save dialog for Python export...");
+            console.log("Opening save dialog for Export...");
+            const isPowerShell = ['winforms', 'wpf'].includes(exportFramework);
+            const ext = isPowerShell ? 'ps1' : 'py';
+            const filterName = isPowerShell ? 'PowerShell Script' : 'Python Script';
+
             const path = await dialog.save({
-                defaultPath: `${formName}.py`,
+                defaultPath: `${formName}.${ext}`,
                 filters: [{
-                    name: 'Python Script',
-                    extensions: ['py']
+                    name: filterName,
+                    extensions: [ext]
                 }]
             });
 
@@ -118,9 +122,13 @@ export const useProjectIO = ({
                     if (runAfterExport) {
                         try {
                             console.log('Spouštím po exportu:', path);
-                            // User requested: "python -m idlelib D:\Backups\App\fox\SKODA\BAK\ZAM00\ZDROJE\_R890BZS3Y.py"
-                            // We will use 'python' command with args.
-                            const command = shell.Command.create('python', ['-m', 'idlelib', path]);
+                            let command;
+                            if (isPowerShell) {
+                                command = shell.Command.create('powershell', ['-ExecutionPolicy', 'Bypass', '-File', path]);
+                            } else {
+                                command = shell.Command.create('python', ['-m', 'idlelib', path]);
+                            }
+
                             const output = await command.execute();
                             console.log('Output:', output);
                         } catch (runErr) {
@@ -134,8 +142,12 @@ export const useProjectIO = ({
                 }
             };
 
-            if (pythonFramework === 'pyqt') {
+            if (exportFramework === 'pyqt') {
                 exportToPythonPyQt(formElements, customMethods, canvasSize, downloadFile, formEvents, formProps);
+            } else if (exportFramework === 'winforms') {
+                exportToPowerShellWinForms(formElements, customMethods, canvasSize, downloadFile, formEvents, formProps);
+            } else if (exportFramework === 'wpf') {
+                exportToPowerShellWPF(formElements, customMethods, canvasSize, downloadFile, formEvents, formProps);
             } else {
                 exportToPython(formElements, customMethods, canvasSize, downloadFile, formEvents, formProps);
             }

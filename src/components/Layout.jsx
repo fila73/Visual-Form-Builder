@@ -44,7 +44,7 @@ const Layout = () => {
     const [showSettings, setShowSettings] = useState(false);
     const [scaCharset, setScaCharset] = useState('windows-1250');
     const [sprCharset, setSprCharset] = useState('cp895');
-    const [pythonFramework, setPythonFramework] = useState('tkinter');
+    const [exportFramework, setExportFramework] = useState('tkinter');
     const [runAfterExport, setRunAfterExport] = useState(false);
     const [activeModal, setActiveModal] = useState(null);
     const [editingCode, setEditingCode] = useState(null);
@@ -78,7 +78,8 @@ const Layout = () => {
         setCustomMethods, customMethods,
         setSelectedIds,
         scaCharset, sprCharset,
-        pythonFramework,
+        exportFramework,
+        formProps, setFormProps,
         formProps, setFormProps,
         runAfterExport
     });
@@ -143,8 +144,8 @@ const Layout = () => {
             const savedSprCharset = await getSetting('sprCharset', 'cp895');
             setSprCharset(savedSprCharset);
 
-            const savedPythonFramework = await getSetting('pythonFramework', 'tkinter');
-            setPythonFramework(savedPythonFramework);
+            const savedExportFramework = await getSetting('exportFramework', 'tkinter');
+            setExportFramework(savedExportFramework);
 
             const savedRunAfterExport = await getSetting('runAfterExport', false);
             setRunAfterExport(savedRunAfterExport);
@@ -173,9 +174,9 @@ const Layout = () => {
         setSetting('sprCharset', charset);
     };
 
-    const handlePythonFrameworkChange = (framework) => {
-        setPythonFramework(framework);
-        setSetting('pythonFramework', framework);
+    const handleExportFrameworkChange = (framework) => {
+        setExportFramework(framework);
+        setSetting('exportFramework', framework);
     };
 
     const handleRunAfterExportChange = (run) => {
@@ -404,8 +405,8 @@ const Layout = () => {
                     onScaCharsetChange={handleScaCharsetChange}
                     sprCharset={sprCharset}
                     onSprCharsetChange={handleSprCharsetChange}
-                    pythonFramework={pythonFramework}
-                    onPythonFrameworkChange={handlePythonFrameworkChange}
+                    exportFramework={exportFramework}
+                    onExportFrameworkChange={handleExportFrameworkChange}
                     runAfterExport={runAfterExport}
                     onRunAfterExportChange={handleRunAfterExportChange}
                 />
