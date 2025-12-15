@@ -43,7 +43,7 @@ const TopBar = ({
                 </button>
                 <button onClick={onExportPython} className="flex items-center space-x-1 px-3 py-1 bg-green-600 hover:bg-green-700 rounded text-sm transition-colors">
                     <Code size={14} />
-                    <span>{t('btn.export_python')}</span>
+                    <span>{t('btn.export')}</span>
                 </button>
                 <div className="h-6 w-px bg-gray-600 mx-2"></div>
                 <button

@@ -117,7 +117,12 @@ export const useProjectIO = ({
 
             const downloadFile = async (name, content, type) => {
                 try {
-                    await fs.writeTextFile(path, content);
+                    // Add BOM for PowerShell scripts
+                    const finalContent = (isPowerShell && !content.startsWith('\uFEFF'))
+                        ? '\uFEFF' + content
+                        : content;
+
+                    await fs.writeTextFile(path, finalContent);
                     console.log('Export úspěšný!');
 
                     if (runAfterExport) {
@@ -127,7 +132,14 @@ export const useProjectIO = ({
                             if (isPowerShell) {
                                 command = shell.Command.create('powershell', ['-ExecutionPolicy', 'Bypass', '-File', path]);
                             } else {
-                                command = shell.Command.create('python', ['-m', 'idlelib', path]);
+                                // Run the Python file using the custom PowerShell script wrapper
+                                // passed as an argument to the 'powershell' command
+                                //command = shell.Command.create('python', ['-m', 'idlelib', '-r', path]);
+                                command = shell.Command.create('powershell', [
+                                    '-ExecutionPolicy', 'Bypass',
+                                    '-File', 'C:\\Apps\\BAT\\spust-v-idle.ps1',
+                                    path
+                                ]);
                             }
 
                             const output = await command.execute();
