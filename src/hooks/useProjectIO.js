@@ -17,7 +17,8 @@ export const useProjectIO = ({
     setSelectedIds,
     scaCharset, sprCharset,
     formProps, setFormProps,
-    exportFramework = 'tkinter'
+    exportFramework = 'tkinter',
+    runAfterExport
 }) => {
     const { t } = useLanguage();
     const fileInputRef = useRef(null);

@@ -25,6 +25,11 @@
           "name": "python",
           "cmd": "python",
           "args": true
+        },
+        {
+          "name": "powershell",
+          "cmd": "powershell",
+          "args": true
         }
       ]
     },

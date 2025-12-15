@@ -118,6 +118,27 @@ $form.Location = New-Object System.Drawing.Point(${formProps.x || 100}, ${formPr
             psCode += `${varName} = New-Object System.Windows.Forms.RadioButton\n`;
             psCode += `${varName}.Text = "${p.label || ''}"\n`;
         }
+        else if (w.type === 'optiongroup') {
+            psCode += `${varName} = New-Object System.Windows.Forms.GroupBox\n`;
+            psCode += `${varName}.Text = "${p.label || ''}"\n`;
+
+            if (p.options && Array.isArray(p.options)) {
+                p.options.forEach((opt, idx) => {
+                    const label = (typeof opt === 'object' && opt !== null) ? (opt.caption || '') : opt;
+                    const val = (typeof opt === 'object' && opt !== null && opt.value !== undefined) ? opt.value : idx;
+                    const rbName = `${varName}_rb_${idx}`;
+
+                    psCode += `${rbName} = New-Object System.Windows.Forms.RadioButton\n`;
+                    psCode += `${rbName}.Text = "${label}"\n`;
+                    // Simple vertical layout
+                    psCode += `${rbName}.Location = New-Object System.Drawing.Point(10, ${20 + (idx * 25)})\n`;
+                    psCode += `${rbName}.Size = New-Object System.Drawing.Size(${wWidth - 20}, 20)\n`;
+                    if (p.value == val) psCode += `${rbName}.Checked = $true\n`;
+
+                    psCode += `${varName}.Controls.Add(${rbName})\n`;
+                });
+            }
+        }
         else if (w.type === 'combobox') {
             psCode += `${varName} = New-Object System.Windows.Forms.ComboBox\n`;
             if (p.options && Array.isArray(p.options)) {
@@ -267,6 +288,22 @@ export const exportToPowerShellWPF = (widgets, customMethods, canvasSize, downlo
         else if (w.type === 'radio') {
             tag = "RadioButton";
             content = p.label || "";
+        }
+        else if (w.type === 'optiongroup') {
+            tag = "GroupBox";
+            props += ` Header="${p.label || ''}"`;
+
+            content += `<StackPanel Margin="5">`;
+            if (p.options && Array.isArray(p.options)) {
+                p.options.forEach((opt, idx) => {
+                    const label = (typeof opt === 'object' && opt !== null) ? (opt.caption || '') : opt;
+                    const val = (typeof opt === 'object' && opt !== null && opt.value !== undefined) ? opt.value : idx;
+                    let rbProps = `Content="${label}" Margin="0,2,0,2"`;
+                    if (p.value == val) rbProps += ` IsChecked="True"`;
+                    content += `<RadioButton ${rbProps}/>`;
+                });
+            }
+            content += `</StackPanel>`;
         }
         else if (w.type === 'combobox') {
             tag = "ComboBox";
