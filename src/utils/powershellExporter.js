@@ -63,7 +63,7 @@ Add-Type -AssemblyName System.Drawing
 
 $form = New-Object System.Windows.Forms.Form
 $form.Text = "${caption}"
-$form.Size = New-Object System.Drawing.Size(${width}, ${height})
+$form.ClientSize = New-Object System.Drawing.Size(${width}, ${height})
 $form.StartPosition = "Manual"
 $form.Location = New-Object System.Drawing.Point(${formProps.x || 100}, ${formProps.y || 100})
 `;
@@ -239,13 +239,13 @@ export const exportToPowerShellWPF = (widgets, customMethods, canvasSize, downlo
     // Helper to generate XAML
     let xaml = `<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="${caption}" Height="${height}" Width="${width}"
+        Title="${caption}" SizeToContent="WidthAndHeight"
         WindowStartupLocation="Manual" Left="${formProps.x || 100}" Top="${formProps.y || 100}"`;
 
     if (formProps.maxButton === false) xaml += ` ResizeMode="CanMinimize"`; // Approx
     if (formProps.movable === false) xaml += ` WindowStyle="None"`;
 
-    xaml += `>\n    <Canvas Name="MainCanvas">\n`;
+    xaml += `>\n    <Canvas Name="MainCanvas" Width="${width}" Height="${height}">\n`;
 
     widgets.forEach(w => {
         const n = w.props.name || w.name;

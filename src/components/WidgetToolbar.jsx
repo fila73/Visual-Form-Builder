@@ -41,7 +41,7 @@ const iconMap = {
 const WidgetToolbar = ({ activeTool, isToolLocked, onToolSelect, onToolLock }) => {
     const { t } = useLanguage();
     return (
-        <div className="w-12 bg-gray-50 border-r border-gray-200 flex flex-col items-center py-4 gap-2 z-10 overflow-y-auto scrollbar-hide">
+        <div className="w-12 shrink-0 bg-gray-50 border-r border-gray-200 flex flex-col items-center py-4 gap-2 z-10 overflow-y-auto scrollbar-hide">
             {/* Cursor Tool */}
             <button
                 onClick={() => onToolSelect(null)}
