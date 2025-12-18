@@ -80,7 +80,6 @@ const Layout = () => {
         scaCharset, sprCharset,
         exportFramework,
         formProps, setFormProps,
-        formProps, setFormProps,
         runAfterExport
     });
 
